@@ -72,7 +72,7 @@ public class RestServer {
 			}
 		}
 
-		System.out.println("REST server listening on %s".formatted(url));
+		System.out.println("REST server started on %s".formatted(url));
 	}
 
 	public void start() {
@@ -84,10 +84,12 @@ public class RestServer {
 			throw new ServerException("This REST server is not running");
 		}
 		running = false;
+		System.out.println("Stopping REST server...");
 		try {
 			this.server.stop();
 		} catch (Exception exception) {
 			throw new ServerException(exception);
 		}
+		System.out.println("REST server stopped");
 	}
 }

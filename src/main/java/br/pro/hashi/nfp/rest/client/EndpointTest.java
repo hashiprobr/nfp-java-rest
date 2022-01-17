@@ -32,7 +32,7 @@ import br.pro.hashi.nfp.rest.server.exception.ResponseException;
 
 public abstract class EndpointTest<T> {
 	private String url;
-	private Class<T> type;
+	private Type type;
 	private ListType listType;
 	private int timeout;
 	private Gson gson;
@@ -105,13 +105,12 @@ public abstract class EndpointTest<T> {
 		return send(request(method, uri).body(content));
 	}
 
-	@SuppressWarnings("unchecked")
 	protected final void start(String url, int timeout) {
 		this.url = url;
 
 		ParameterizedType genericType = (ParameterizedType) getClass().getGenericSuperclass();
 		Type[] types = genericType.getActualTypeArguments();
-		this.type = (Class<T>) types[0];
+		this.type = types[0];
 
 		this.listType = new ListType(this.type);
 

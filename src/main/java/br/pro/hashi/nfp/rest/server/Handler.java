@@ -78,12 +78,12 @@ public final class Handler extends AbstractHandler {
 	@Override
 	public final void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) {
 		String responseBody;
-		String uri = request.getRequestURI().replaceAll("/{2,}", "/");
+		String uri = request.getRequestURI();
 		int length = uri.length();
 		String suffix = "";
 		if (length > 4) {
 			if (length == 5) {
-				if (uri == "/list" || uri == "/file") {
+				if (uri.equals("/list") || uri.equals("/file")) {
 					suffix = uri;
 					uri = "/";
 				}
@@ -109,9 +109,6 @@ public final class Handler extends AbstractHandler {
 					throw new BadRequestException("Arg name cannot be blank");
 				}
 				String[] values = map.get(name);
-				if (values.length < 1) {
-					throw new BadRequestException("Arg %s must have a value".formatted(name));
-				}
 				if (values.length > 1) {
 					throw new BadRequestException("Arg %s must have a single value".formatted(name));
 				}

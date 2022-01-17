@@ -14,28 +14,30 @@ import br.pro.hashi.nfp.rest.server.exception.ServerException;
 
 public abstract class Endpoint<T> {
 	private final String uri;
-	private final Class<T> type;
+	private final Type type;
 	private final ListType listType;
 	private final boolean plain;
 	private Gson gson;
 
-	@SuppressWarnings("unchecked")
 	protected Endpoint(String uri) {
+		if (uri == null) {
+			throw new ServerException("URI cannot be null");
+		}
 		if (!uri.startsWith("/")) {
 			throw new ServerException("URI must start with a slash");
 		}
 		if (uri.indexOf("/", 1) != -1) {
-			throw new ServerException("URI must have only one slash");
+			throw new ServerException("URI cannot have more than one slash");
 		}
 		this.uri = uri;
 
 		ParameterizedType genericType = (ParameterizedType) getClass().getGenericSuperclass();
 		Type[] types = genericType.getActualTypeArguments();
-		this.type = (Class<T>) types[0];
+		this.type = types[0];
 
 		this.listType = new ListType(this.type);
 
-		this.plain = type.getName() == "java.lang.String";
+		this.plain = this.type.toString().equals("class java.lang.String");
 
 		this.gson = null;
 	}
@@ -58,7 +60,7 @@ public abstract class Endpoint<T> {
 		if (plain) {
 			return (S) requestBody;
 		} else {
-			return fromJson("POST", requestBody, type);
+			return fromJson(method, requestBody, type);
 		}
 	}
 

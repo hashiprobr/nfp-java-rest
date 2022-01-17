@@ -40,7 +40,7 @@ public final class Args extends HashMap<String, String> {
 	}
 
 	public final List<String> getList(String name, String regex) {
-		return Arrays.asList(name.split(regex));
+		return Arrays.asList(get(name).split(regex));
 	}
 
 	public final List<Boolean> getListBoolean(String name, String regex) {
