@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.github.hashiprobr</groupId>
   <artifactId>nfp-rest</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>1.0.0-SNAPSHOT</version>
   <name>io.github.hashiprobr:nfp-rest</name>
   <description>Not-For-Production REST framework based on Jetty and Gson.</description>
   <url>https://github.com/hashiprobr/nfp-java-rest</url>
@@ -123,6 +123,11 @@
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-client</artifactId>
       <version>11.0.7</version>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-simple</artifactId>
+      <version>1.7.33</version>
     </dependency>
 	<dependency>
       <groupId>org.junit.jupiter</groupId>

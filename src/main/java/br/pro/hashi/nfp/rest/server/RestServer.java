@@ -2,7 +2,6 @@ package br.pro.hashi.nfp.rest.server;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.logging.Logger;
 
 import org.eclipse.jetty.server.Server;
 
@@ -14,7 +13,6 @@ import br.pro.hashi.nfp.rest.server.exception.ServerException;
 
 public class RestServer {
 	private final int port;
-	private final Logger logger;
 	private final Handler handler;
 	private final Server server;
 	private boolean running;
@@ -27,8 +25,7 @@ public class RestServer {
 			throw new ServerException("Name cannot be blank");
 		}
 		this.port = port;
-		this.logger = Logger.getLogger("br.pro.hashi.nfp.rest");
-		this.handler = new Handler(name, this.logger);
+		this.handler = new Handler(name);
 		this.server = new Server(this.port);
 		this.server.setHandler(this.handler);
 		this.running = false;
@@ -44,7 +41,7 @@ public class RestServer {
 		}
 		running = true;
 
-		logger.info("Starting REST server...");
+		System.out.println("Starting REST server...");
 
 		try {
 			this.server.start();
@@ -75,7 +72,7 @@ public class RestServer {
 			}
 		}
 
-		logger.info("REST server listening on %s".formatted(url));
+		System.out.println("REST server listening on %s".formatted(url));
 	}
 
 	public void start() {

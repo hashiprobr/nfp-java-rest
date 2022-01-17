@@ -7,12 +7,10 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Logger;
 
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.reflections.Reflections;
-import org.reflections.ReflectionsException;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -31,7 +29,7 @@ public final class Handler extends AbstractHandler {
 	private final Map<String, Endpoint<?>> endpoints;
 	private final char[] buffer;
 
-	public Handler(String name, Logger logger) {
+	public Handler(String name) {
 		super();
 		this.gson = new GsonBuilder()
 				.serializeNulls()
@@ -39,29 +37,25 @@ public final class Handler extends AbstractHandler {
 				.create();
 		this.endpoints = new HashMap<>();
 		Reflections reflections = new Reflections(name);
-		try {
-			for (Class<?> type : reflections.getSubTypesOf(Endpoint.class)) {
-				Constructor<?> constructor;
-				try {
-					constructor = type.getConstructor();
-				} catch (NoSuchMethodException exception) {
-					throw new ServerException("Class %s must have a public no-argument constructor".formatted(type.getName()));
-				}
-				Endpoint<?> endpoint;
-				try {
-					endpoint = (Endpoint<?>) constructor.newInstance();
-				} catch (InvocationTargetException exception) {
-					throw new ServerException(exception);
-				} catch (IllegalAccessException exception) {
-					throw new ServerException(exception);
-				} catch (InstantiationException exception) {
-					throw new ServerException(exception);
-				}
-				endpoint.setGson(this.gson);
-				this.endpoints.put(endpoint.getUri(), endpoint);
+		for (Class<?> type : reflections.getSubTypesOf(Endpoint.class)) {
+			Constructor<?> constructor;
+			try {
+				constructor = type.getConstructor();
+			} catch (NoSuchMethodException exception) {
+				throw new ServerException("Class %s must have a public no-argument constructor".formatted(type.getName()));
 			}
-		} catch (ReflectionsException exception) {
-			logger.warning("Could not find subclasses of Endpoint in %s".formatted(name));
+			Endpoint<?> endpoint;
+			try {
+				endpoint = (Endpoint<?>) constructor.newInstance();
+			} catch (InvocationTargetException exception) {
+				throw new ServerException(exception);
+			} catch (IllegalAccessException exception) {
+				throw new ServerException(exception);
+			} catch (InstantiationException exception) {
+				throw new ServerException(exception);
+			}
+			endpoint.setGson(this.gson);
+			this.endpoints.put(endpoint.getUri(), endpoint);
 		}
 		this.buffer = new char[8192];
 	}
