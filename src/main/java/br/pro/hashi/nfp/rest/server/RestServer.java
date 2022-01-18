@@ -39,12 +39,11 @@ public class RestServer {
 		if (running) {
 			throw new ServerException("This REST server is already running");
 		}
-		running = true;
 
 		System.out.println("Starting REST server...");
 
 		try {
-			this.server.start();
+			server.start();
 		} catch (Exception exception) {
 			throw new ServerException(exception);
 		}
@@ -72,6 +71,8 @@ public class RestServer {
 			}
 		}
 
+		running = true;
+
 		System.out.println("REST server started on %s".formatted(url));
 	}
 
@@ -83,13 +84,13 @@ public class RestServer {
 		if (!running) {
 			throw new ServerException("This REST server is not running");
 		}
-		running = false;
 		System.out.println("Stopping REST server...");
 		try {
-			this.server.stop();
+			server.stop();
 		} catch (Exception exception) {
 			throw new ServerException(exception);
 		}
+		running = false;
 		System.out.println("REST server stopped");
 	}
 }

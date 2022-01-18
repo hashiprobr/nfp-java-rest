@@ -38,6 +38,35 @@ public abstract class EndpointTest<T> {
 	private Gson gson;
 	private HttpClient client;
 
+	protected final void start(String url, int timeout) {
+		this.url = url;
+
+		ParameterizedType genericType = (ParameterizedType) getClass().getGenericSuperclass();
+		Type[] types = genericType.getActualTypeArguments();
+		this.type = types[0];
+
+		this.listType = new ListType(this.type);
+
+		this.timeout = timeout;
+
+		this.gson = new GsonBuilder()
+				.serializeNulls()
+				.setPrettyPrinting()
+				.create();
+
+		this.client = new HttpClient();
+
+		try {
+			this.client.start();
+		} catch (Exception exception) {
+			throw new ClientException(exception);
+		}
+	}
+
+	protected final void start(String url) {
+		start(url, 10);
+	}
+
 	private String encode(String subItem) {
 		return URLEncoder.encode(subItem, StandardCharsets.UTF_8);
 	}
@@ -105,35 +134,6 @@ public abstract class EndpointTest<T> {
 		return send(request(method, uri).body(content));
 	}
 
-	protected final void start(String url, int timeout) {
-		this.url = url;
-
-		ParameterizedType genericType = (ParameterizedType) getClass().getGenericSuperclass();
-		Type[] types = genericType.getActualTypeArguments();
-		this.type = types[0];
-
-		this.listType = new ListType(this.type);
-
-		this.timeout = timeout;
-
-		this.gson = new GsonBuilder()
-				.serializeNulls()
-				.setPrettyPrinting()
-				.create();
-
-		this.client = new HttpClient();
-
-		try {
-			this.client.start();
-		} catch (Exception exception) {
-			throw new ClientException(exception);
-		}
-	}
-
-	protected final void start(String url) {
-		start(url, 10);
-	}
-
 	protected final String toJson(Object body) {
 		return gson.toJson(body);
 	}
@@ -176,7 +176,7 @@ public abstract class EndpointTest<T> {
 
 	protected final void stop() {
 		try {
-			this.client.stop();
+			client.stop();
 		} catch (Exception exception) {
 			throw new ClientException(exception);
 		}

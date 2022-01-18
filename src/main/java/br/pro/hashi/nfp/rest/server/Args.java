@@ -12,7 +12,13 @@ public final class Args extends HashMap<String, String> {
 	private static final long serialVersionUID = -7423139194700458380L;
 
 	public final String get(String name) {
-		if (this.containsKey(name)) {
+		if (name == null) {
+			throw new FormatArgumentException("Arg name cannot be null");
+		}
+		if (name.isBlank()) {
+			throw new FormatArgumentException("Arg name cannot be blank");
+		}
+		if (containsKey(name)) {
 			return super.get(name);
 		} else {
 			throw new ExistenceArgumentException("Arg %s does not exist".formatted(name));
@@ -40,7 +46,14 @@ public final class Args extends HashMap<String, String> {
 	}
 
 	public final List<String> getList(String name, String regex) {
-		return Arrays.asList(get(name).split(regex));
+		String value = get(name);
+		if (regex == null) {
+			throw new FormatArgumentException("Regular expression cannot be null");
+		}
+		if (regex.isBlank()) {
+			throw new FormatArgumentException("Regular expression cannot be blank");
+		}
+		return Arrays.asList(value.split(regex));
 	}
 
 	public final List<Boolean> getListBoolean(String name, String regex) {
