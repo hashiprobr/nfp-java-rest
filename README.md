@@ -25,7 +25,8 @@ endpoint of strings, or an endpoint of one of your own classes.
 The super constructor must receive the URI from where you want the endpoint to
 be.
 
-In the example below, we define an endpoint of integers with "/sum" as the URI.
+In the example below, we define an endpoint of integers with `"/sum"` as the
+URI.
 
 ``` java
 package name.of.a.package;
@@ -70,7 +71,7 @@ GET not implemented
 
 ...because no HTTP method has been implemented for this endpoint.
 
-Before continuing, please note that **any change to the endpoints require a
+Before continuing, please note that **any change to the endpoints requires a
 server restart**.
 
 ### Implementing HTTP methods
@@ -92,7 +93,7 @@ public class SumEndpoint extends Endpoint<Integer> {
 
 Why this method returns an integer? Because `SumEndpoint` is an endpoint of
 integers, as established by the choice of `Integer` as its parameter. If a
-client wants to "GET /sum", it is assumed that it wants to get an integer.
+client wants to `GET /sum`, it is assumed that it wants to get an integer.
 
 For the same reason, the `post` and `put` methods receive an integer...
 
@@ -121,9 +122,9 @@ But what does the client actually receive? If the return value is a string, the
 client simply receives this string. If the return value is anything else, the
 client receives it serialized as a JSON representation.
 
-Analogously, if the client sends a POST or PUT, it either needs to send a string
-as the body. For an endpoint of strings, it can be an arbitrary one. For an
-endpoint of another type, it must be a JSON representation of the type.
+Analogously, if the client sends a POST or PUT, it needs to send a string as the
+body. For an endpoint of strings, it can be an arbitrary one. For an endpoint of
+another type, it must be a JSON representation of the type.
 
 ### Receiving query strings
 
@@ -142,14 +143,14 @@ below.
 * `List<String> getList(String key, String regex)`: returns the value of `key`
   as a list of strings, using `regex` as the separator.
 
-* `List<Boolean> getBoolean(String key)`: returns the value of `key` as a list
-  of booleans, using `regex` as the separator.
+* `List<Boolean> getListBoolean(String key)`: returns the value of `key` as a
+  list of booleans, using `regex` as the separator.
 
 * `List<Integer> getListInt(String key, String regex)`: returns the value of
   `key` as a list of integers, using `regex` as the separator.
 
 * `List<Double> getListDouble(String key, String regex)`: returns the value of
-  `key` as a list of double, using `regex` as the separator.
+  `key` as a list of doubles, using `regex` as the separator.
 
 If, for example, we want `GET /sum` to actually do a sum, we can write...
 
@@ -162,7 +163,7 @@ public Integer get(Args args) {
 }
 ```
 
-...and point the internet browser to `http://192.168.123.456:8080/sum?a=1&b+2`
+...and point the internet browser to `http://192.168.123.456:8080/sum?a=1&b=2`
 for a slightly more exciting output.
 
 ``` plaintext
@@ -190,7 +191,7 @@ for another output.
 10
 ```
 
-Again, remember that **any change to the endpoints require a server restart**.
+Again, remember that **any change to the endpoints requires a server restart**.
 
 
 Batch URI suffixes
@@ -240,7 +241,7 @@ server.start(true);
 ```
 
 ...the server opens a public tunnel using [ngrok](https://ngrok.com/), allowing
-uses in other networks to access it.
+users in other networks to access it.
 
 
 Full CRUD example
@@ -325,6 +326,7 @@ public class UserEndpoint extends Endpoint<User> {
     public Object deleteList(Args args) {
         List<String> keys = args.getListInt("keys");
         UserDAO.Selection selection = dao.select(keys);
+        dao.delete(selection)
         return null;
     }
 
