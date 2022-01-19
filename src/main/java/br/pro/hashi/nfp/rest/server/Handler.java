@@ -194,6 +194,7 @@ public final class Handler extends AbstractHandler {
 			response.setContentType("text/plain");
 			responseBody = "Internal server error";
 		}
+		response.setCharacterEncoding("UTF-8");
 		response.addHeader("Access-Control-Allow-Origin", "*");
 		response.addHeader("Access-Control-Allow-Methods", "*");
 		response.addHeader("Access-Control-Allow-Headers", "*");

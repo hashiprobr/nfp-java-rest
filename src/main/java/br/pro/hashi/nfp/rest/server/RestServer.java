@@ -14,8 +14,10 @@ import br.pro.hashi.nfp.rest.server.exception.ServerException;
 public class RestServer {
 	private final int port;
 	private final Handler handler;
+	private final JsonErrorHandler errorHandler;
 	private final Server server;
 	private boolean running;
+	private boolean exists;
 
 	public RestServer(String name, int port) {
 		if (name == null) {
@@ -26,16 +28,26 @@ public class RestServer {
 		}
 		this.port = port;
 		this.handler = new Handler(name);
+		this.errorHandler = new JsonErrorHandler();
 		this.server = new Server(this.port);
 		this.server.setHandler(this.handler);
+		this.server.setErrorHandler(this.errorHandler);
 		this.running = false;
+		this.exists = true;
 	}
 
 	public RestServer(String name) {
 		this(name, 8080);
 	}
 
+	private void check() {
+		if (!exists) {
+			throw new ServerException("This REST server has been destroyed");
+		}
+	}
+
 	public void start(boolean useTunnel) {
+		check();
 		if (running) {
 			throw new ServerException("This REST server is already running");
 		}
@@ -81,6 +93,7 @@ public class RestServer {
 	}
 
 	public void stop() {
+		check();
 		if (!running) {
 			throw new ServerException("This REST server is not running");
 		}
@@ -92,5 +105,17 @@ public class RestServer {
 		}
 		running = false;
 		System.out.println("REST server stopped");
+	}
+
+	public void destroy() {
+		if (!exists) {
+			throw new ServerException("This REST server has already been destroyed");
+		}
+		if (running) {
+			throw new ServerException("This REST server is still running");
+		}
+		handler.destroy();
+		errorHandler.destroy();
+		exists = false;
 	}
 }
