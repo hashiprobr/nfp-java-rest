@@ -37,7 +37,7 @@ public abstract class Endpoint<T> {
 
 		this.listType = new ListType(this.type);
 
-		this.plain = this.type.toString().equals("class java.lang.String");
+		this.plain = this.type == String.class;
 
 		this.gson = null;
 	}
