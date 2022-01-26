@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.github.hashiprobr</groupId>
   <artifactId>nfp-rest</artifactId>
-  <version>1.2.2</version>
+  <version>1.2.3</version>
   <name>io.github.hashiprobr:nfp-rest</name>
   <description>Not-For-Production REST framework based on Jetty and Gson.</description>
   <url>https://github.com/hashiprobr/nfp-java-rest</url>

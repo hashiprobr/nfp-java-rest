@@ -42,9 +42,8 @@ public class SumEndpoint extends Endpoint<Integer> {
 
 ### Starting a server
 
-The first parameter of the `RestServer` constructor is the name of the package
-where the endpoints are located. The second parameter is the port where the
-server should listen. If omitted, it defaults to 8080.
+To build a server, you need the name of the package where the endpoints are
+located and a port. If the port is omitted, it defaults to 8080.
 
 ``` java
 public static void main(String[] args) {

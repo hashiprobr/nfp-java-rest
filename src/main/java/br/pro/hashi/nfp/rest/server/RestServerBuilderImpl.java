@@ -2,7 +2,7 @@ package br.pro.hashi.nfp.rest.server;
 
 import org.eclipse.jetty.server.Server;
 
-public class RestServerBuilderImpl implements RestServerBuilder {
+class RestServerBuilderImpl implements RestServerBuilder {
 	private final String name;
 	private int port;
 
