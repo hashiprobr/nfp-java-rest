@@ -4,7 +4,7 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.List;
 
-public final class ListType implements ParameterizedType {
+public class ListType implements ParameterizedType {
 	private final Type[] types;
 
 	public ListType(Type type) {
@@ -13,17 +13,17 @@ public final class ListType implements ParameterizedType {
 	}
 
 	@Override
-	public final Type[] getActualTypeArguments() {
+	public Type[] getActualTypeArguments() {
 		return types;
 	}
 
 	@Override
-	public final Type getRawType() {
+	public Type getRawType() {
 		return List.class;
 	}
 
 	@Override
-	public final Type getOwnerType() {
+	public Type getOwnerType() {
 		return null;
 	}
 }

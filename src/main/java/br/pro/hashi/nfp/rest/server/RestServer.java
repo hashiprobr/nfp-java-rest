@@ -12,32 +12,20 @@ import com.github.alexdlaird.ngrok.protocol.Tunnel;
 import br.pro.hashi.nfp.rest.server.exception.ServerException;
 
 public class RestServer {
+	public static RestServerBuilder Builder(String name) {
+		return new RestServerBuilder(name);
+	}
+
 	private final int port;
-	private final Handler handler;
-	private final JsonErrorHandler errorHandler;
 	private final Server server;
 	private boolean running;
 	private boolean exists;
 
-	public RestServer(String name, int port) {
-		if (name == null) {
-			throw new ServerException("Name cannot be null");
-		}
-		if (name.isBlank()) {
-			throw new ServerException("Name cannot be blank");
-		}
+	public RestServer(int port, Server server) {
 		this.port = port;
-		this.handler = new Handler(name);
-		this.errorHandler = new JsonErrorHandler();
-		this.server = new Server(this.port);
-		this.server.setHandler(this.handler);
-		this.server.setErrorHandler(this.errorHandler);
+		this.server = server;
 		this.running = false;
 		this.exists = true;
-	}
-
-	public RestServer(String name) {
-		this(name, 8080);
 	}
 
 	private void check() {
@@ -114,8 +102,7 @@ public class RestServer {
 		if (running) {
 			throw new ServerException("This REST server is still running");
 		}
-		handler.destroy();
-		errorHandler.destroy();
+		server.destroy();
 		exists = false;
 	}
 }

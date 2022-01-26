@@ -64,6 +64,34 @@ public abstract class Endpoint<T> {
 		}
 	}
 
+	String getUri() {
+		return uri;
+	}
+
+	void setGson(Gson gson) {
+		this.gson = gson;
+	}
+
+	Object doPost(Args args, String requestBody) {
+		T body = fromJson("POST", requestBody);
+		return post(args, body);
+	}
+
+	Object doPostList(Args args, String requestBody) {
+		List<T> body = fromJson("POST", requestBody, listType);
+		return postList(args, body);
+	}
+
+	Object doPut(Args args, String requestBody) {
+		T body = fromJson("PUT", requestBody);
+		return put(args, body);
+	}
+
+	Object doPutList(Args args, String requestBody) {
+		List<T> body = fromJson("PUT", requestBody, listType);
+		return putList(args, body);
+	}
+
 	protected T get(Args args) {
 		throw new NotImplementedException("get");
 	}
@@ -110,33 +138,5 @@ public abstract class Endpoint<T> {
 
 	protected Object deleteFile(Args args) {
 		throw new NotImplementedException("delete");
-	}
-
-	public final String getUri() {
-		return uri;
-	}
-
-	public final void setGson(Gson gson) {
-		this.gson = gson;
-	}
-
-	public final Object doPost(Args args, String requestBody) {
-		T body = fromJson("POST", requestBody);
-		return post(args, body);
-	}
-
-	public final Object doPostList(Args args, String requestBody) {
-		List<T> body = fromJson("POST", requestBody, listType);
-		return postList(args, body);
-	}
-
-	public final Object doPut(Args args, String requestBody) {
-		T body = fromJson("PUT", requestBody);
-		return put(args, body);
-	}
-
-	public final Object doPutList(Args args, String requestBody) {
-		List<T> body = fromJson("PUT", requestBody, listType);
-		return putList(args, body);
 	}
 }

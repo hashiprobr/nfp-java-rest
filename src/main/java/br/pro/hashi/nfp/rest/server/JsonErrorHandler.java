@@ -14,9 +14,9 @@ import br.pro.hashi.nfp.rest.server.exception.IOServerException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-public final class JsonErrorHandler extends ErrorHandler {
+class JsonErrorHandler extends ErrorHandler {
 	@Override
-	public final void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) {
+	public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) {
 		String message = (String) request.getAttribute(Dispatcher.ERROR_MESSAGE);
 		if (message == null) {
 			message = baseRequest.getResponse().getReason();
@@ -37,7 +37,7 @@ public final class JsonErrorHandler extends ErrorHandler {
 	}
 
 	@Override
-	public final ByteBuffer badMessageError(int status, String reason, HttpFields.Mutable fields) {
+	public ByteBuffer badMessageError(int status, String reason, HttpFields.Mutable fields) {
 		return BufferUtil.toBuffer(reason);
 	}
 }

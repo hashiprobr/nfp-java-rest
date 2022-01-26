@@ -8,10 +8,10 @@ import java.util.List;
 import br.pro.hashi.nfp.rest.server.exception.ExistenceArgumentException;
 import br.pro.hashi.nfp.rest.server.exception.FormatArgumentException;
 
-public final class Args extends HashMap<String, String> {
-	private static final long serialVersionUID = -7423139194700458380L;
+public class Args extends HashMap<String, String> {
+	private static final long serialVersionUID = 7075288835789638466L;
 
-	public final String get(String name) {
+	public String get(String name) {
 		if (name == null) {
 			throw new FormatArgumentException("Arg name cannot be null");
 		}
@@ -25,11 +25,11 @@ public final class Args extends HashMap<String, String> {
 		}
 	}
 
-	public final boolean getBoolean(String name) {
+	public boolean getBoolean(String name) {
 		return Boolean.parseBoolean(get(name));
 	}
 
-	public final int getInt(String name) {
+	public int getInt(String name) {
 		try {
 			return Integer.parseInt(get(name));
 		} catch (NumberFormatException exception) {
@@ -37,7 +37,7 @@ public final class Args extends HashMap<String, String> {
 		}
 	}
 
-	public final double getDouble(String name) {
+	public double getDouble(String name) {
 		try {
 			return Double.parseDouble(get(name));
 		} catch (NumberFormatException exception) {
@@ -45,7 +45,7 @@ public final class Args extends HashMap<String, String> {
 		}
 	}
 
-	public final List<String> getList(String name, String regex) {
+	public List<String> getList(String name, String regex) {
 		String value = get(name);
 		if (regex == null) {
 			throw new FormatArgumentException("Regular expression cannot be null");
@@ -56,7 +56,7 @@ public final class Args extends HashMap<String, String> {
 		return Arrays.asList(value.split(regex));
 	}
 
-	public final List<Boolean> getListBoolean(String name, String regex) {
+	public List<Boolean> getListBoolean(String name, String regex) {
 		List<Boolean> values = new ArrayList<>();
 		for (String value : getList(name, regex)) {
 			values.add(Boolean.parseBoolean(value));
@@ -64,7 +64,7 @@ public final class Args extends HashMap<String, String> {
 		return values;
 	}
 
-	public final List<Integer> getListInt(String name, String regex) {
+	public List<Integer> getListInt(String name, String regex) {
 		List<Integer> values = new ArrayList<>();
 		for (String value : getList(name, regex)) {
 			try {
@@ -76,7 +76,7 @@ public final class Args extends HashMap<String, String> {
 		return values;
 	}
 
-	public final List<Double> getListDouble(String name, String regex) {
+	public List<Double> getListDouble(String name, String regex) {
 		List<Double> values = new ArrayList<>();
 		for (String value : getList(name, regex)) {
 			try {

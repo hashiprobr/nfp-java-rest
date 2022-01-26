@@ -24,19 +24,25 @@ import br.pro.hashi.nfp.rest.server.exception.ServerException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-public final class Handler extends AbstractHandler {
+class Handler extends AbstractHandler {
 	private final Gson gson;
 	private final Map<String, Endpoint<?>> endpoints;
 	private final char[] buffer;
 
-	public Handler(String name) {
+	Handler(String name) {
 		super();
+		if (name == null) {
+			throw new ServerException("Name cannot be null");
+		}
+		if (name.isBlank()) {
+			throw new ServerException("Name cannot be blank");
+		}
+		Reflections reflections = new Reflections(name);
 		this.gson = new GsonBuilder()
 				.serializeNulls()
 				.setPrettyPrinting()
 				.create();
 		this.endpoints = new HashMap<>();
-		Reflections reflections = new Reflections(name);
 		for (Class<?> type : reflections.getSubTypesOf(Endpoint.class)) {
 			Constructor<?> constructor;
 			try {
@@ -76,7 +82,7 @@ public final class Handler extends AbstractHandler {
 	}
 
 	@Override
-	public final void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) {
+	public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) {
 		String responseBody;
 		String uri = request.getRequestURI();
 		int length = uri.length();
