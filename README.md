@@ -48,7 +48,7 @@ server should listen. If omitted, it defaults to 8080.
 
 ``` java
 public static void main(String[] args) {
-    RestServer server = new RestServer("name.of.a.package", 8080);
+    RestServer server = RestServer.Builder("name.of.a.package").at(8080).build();
     server.start();
 }
 ```
