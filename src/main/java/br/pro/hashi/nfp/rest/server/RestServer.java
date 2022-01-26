@@ -13,7 +13,7 @@ import br.pro.hashi.nfp.rest.server.exception.ServerException;
 
 public class RestServer {
 	public static RestServerBuilder Builder(String name) {
-		return new RestServerBuilder(name);
+		return new RestServerBuilderImpl(name);
 	}
 
 	private final int port;
