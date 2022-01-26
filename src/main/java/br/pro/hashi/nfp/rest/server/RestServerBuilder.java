@@ -11,7 +11,7 @@ public class RestServerBuilder {
 		this.port = 8080;
 	}
 
-	public RestServerBuilder withPort(int port) {
+	public RestServerBuilder at(int port) {
 		this.port = port;
 		return this;
 	}
