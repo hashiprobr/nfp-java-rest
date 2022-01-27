@@ -218,9 +218,9 @@ of the method.
 
 * `public String getFile(Args args)`
 
-* `public String postFile(Args args, InputStream stream)`
+* `public Object postFile(Args args, InputStream stream)`
 
-* `public String putFile(Args args, InputStream stream)`
+* `public Object putFile(Args args, InputStream stream)`
 
 * `public Object deleteFile(Args args)`
 
@@ -266,8 +266,8 @@ public class UserEndpoint extends Endpoint<User> {
 
     @Override
     public List<User> getList(Args args) {
-        List<String> keys = args.getListInt("keys");
-        UserDAO.Selection selection = dao.select(keys);
+        List<String> keys = args.getList("keys");
+        Selection selection = dao.select(keys);
         return dao.retrieve(selection);
     }
 
@@ -298,13 +298,13 @@ public class UserEndpoint extends Endpoint<User> {
     @Override
     public Object put(Args args, User user) {
         dao.update(user);
-        return null;
+        return "updated";
     }
 
     @Override
     public Object putList(Args args, List<User> users) {
         dao.update(users);
-        return null;
+        return "updated list";
     }
 
     @Override
@@ -318,15 +318,15 @@ public class UserEndpoint extends Endpoint<User> {
     public Object delete(Args args) {
         String key = args.get("key");
         dao.delete(key);
-        return null;
+        return "deleted";
     }
 
     @Override
     public Object deleteList(Args args) {
-        List<String> keys = args.getListInt("keys");
-        UserDAO.Selection selection = dao.select(keys);
+        List<String> keys = args.getList("keys");
+        Selection selection = dao.select(keys);
         dao.delete(selection)
-        return null;
+        return "deleted list";
     }
 
     @Override
@@ -334,7 +334,7 @@ public class UserEndpoint extends Endpoint<User> {
         String key = args.get("key");
         String name = args.get("name");
         dao.delete(key, name);
-        return null;
+        return "deleted file";
     }
 }
 
