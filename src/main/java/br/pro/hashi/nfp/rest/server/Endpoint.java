@@ -112,7 +112,7 @@ public abstract class Endpoint<T> {
 		throw new NotImplementedException("post");
 	}
 
-	protected String postFile(Args args, InputStream stream) {
+	protected Object postFile(Args args, InputStream stream) {
 		throw new NotImplementedException("post");
 	}
 
@@ -124,7 +124,7 @@ public abstract class Endpoint<T> {
 		throw new NotImplementedException("put");
 	}
 
-	protected String putFile(Args args, InputStream stream) {
+	protected Object putFile(Args args, InputStream stream) {
 		throw new NotImplementedException("put");
 	}
 
