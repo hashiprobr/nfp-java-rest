@@ -83,8 +83,8 @@ public abstract class EndpointTest<T> {
 					if (subIndex == -1) {
 						items[i] = encode(items[i]);
 					} else {
-						String name = items[i].substring(0, index);
-						String value = items[i].substring(index + 1);
+						String name = items[i].substring(0, subIndex);
+						String value = items[i].substring(subIndex + 1);
 						items[i] = "%s=%s".formatted(encode(name), encode(value));
 					}
 				}
