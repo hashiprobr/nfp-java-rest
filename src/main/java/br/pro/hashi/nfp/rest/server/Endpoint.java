@@ -3,6 +3,7 @@ package br.pro.hashi.nfp.rest.server;
 import java.io.InputStream;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.HashMap;
 import java.util.List;
 
 import com.google.gson.Gson;
@@ -72,6 +73,11 @@ public abstract class Endpoint<T> {
 		this.gson = gson;
 	}
 
+	Object doPost(Args args, String requestBody, HashMap<String, InputStream> streams) {
+		T body = fromJson("POST", requestBody);
+		return post(args, body, streams);
+	}
+
 	Object doPost(Args args, String requestBody) {
 		T body = fromJson("POST", requestBody);
 		return post(args, body);
@@ -80,6 +86,11 @@ public abstract class Endpoint<T> {
 	Object doPostList(Args args, String requestBody) {
 		List<T> body = fromJson("POST", requestBody, listType);
 		return postList(args, body);
+	}
+
+	Object doPut(Args args, String requestBody, HashMap<String, InputStream> streams) {
+		T body = fromJson("PUT", requestBody);
+		return put(args, body, streams);
 	}
 
 	Object doPut(Args args, String requestBody) {
@@ -100,8 +111,8 @@ public abstract class Endpoint<T> {
 		throw new NotImplementedException("get");
 	}
 
-	protected String getFile(Args args) {
-		throw new NotImplementedException("get");
+	protected Object post(Args args, T body, HashMap<String, InputStream> streams) {
+		throw new NotImplementedException("post");
 	}
 
 	protected Object post(Args args, T body) {
@@ -112,8 +123,8 @@ public abstract class Endpoint<T> {
 		throw new NotImplementedException("post");
 	}
 
-	protected Object postFile(Args args, InputStream stream) {
-		throw new NotImplementedException("post");
+	protected Object put(Args args, T body, HashMap<String, InputStream> streams) {
+		throw new NotImplementedException("put");
 	}
 
 	protected Object put(Args args, T body) {
@@ -124,19 +135,11 @@ public abstract class Endpoint<T> {
 		throw new NotImplementedException("put");
 	}
 
-	protected Object putFile(Args args, InputStream stream) {
-		throw new NotImplementedException("put");
-	}
-
 	protected Object delete(Args args) {
 		throw new NotImplementedException("delete");
 	}
 
 	protected Object deleteList(Args args) {
-		throw new NotImplementedException("delete");
-	}
-
-	protected Object deleteFile(Args args) {
 		throw new NotImplementedException("delete");
 	}
 }

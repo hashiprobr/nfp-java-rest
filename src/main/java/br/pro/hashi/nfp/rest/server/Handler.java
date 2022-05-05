@@ -2,9 +2,12 @@ package br.pro.hashi.nfp.rest.server;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -21,13 +24,17 @@ import br.pro.hashi.nfp.rest.server.exception.NotFoundException;
 import br.pro.hashi.nfp.rest.server.exception.NotSupportedException;
 import br.pro.hashi.nfp.rest.server.exception.ResponseException;
 import br.pro.hashi.nfp.rest.server.exception.ServerException;
+import jakarta.servlet.MultipartConfigElement;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.Part;
 
 class Handler extends AbstractHandler {
 	private final Gson gson;
 	private final Map<String, Endpoint<?>> endpoints;
 	private final char[] buffer;
+	private MultipartConfigElement element;
 
 	Handler(String name) {
 		super();
@@ -64,11 +71,11 @@ class Handler extends AbstractHandler {
 			this.endpoints.put(endpoint.getUri(), endpoint);
 		}
 		this.buffer = new char[8192];
+		this.element = new MultipartConfigElement("tmp");
 	}
 
-	private String read(HttpServletRequest request) throws IOException {
+	private String read(BufferedReader reader) throws IOException {
 		StringBuilder builder = new StringBuilder();
-		BufferedReader reader = request.getReader();
 		String line;
 		while ((line = reader.readLine()) != null) {
 			builder.append(line);
@@ -81,23 +88,64 @@ class Handler extends AbstractHandler {
 		return builder.toString();
 	}
 
+	private String read(HttpServletRequest request) throws IOException {
+		BufferedReader reader = request.getReader();
+		return read(reader);
+	}
+
+	private AbstractMap.SimpleEntry<String, HashMap<String, InputStream>> split(HttpServletRequest request) throws IOException, ServletException {
+		InputStream stream = null;
+		HashMap<String, InputStream> streams = new HashMap<>();
+		request.setAttribute(Request.__MULTIPART_CONFIG_ELEMENT, element);
+		for (Part part : request.getParts()) {
+			String type = part.getContentType();
+			if (type == null) {
+				throw new BadRequestException("Multipart must have types");
+			}
+			if (type.startsWith("application/json")) {
+				if (stream == null) {
+					stream = part.getInputStream();
+				} else {
+					throw new BadRequestException("Multipart must have only one application/json");
+				}
+			} else if (type.startsWith("application/octet-stream")) {
+				streams.put(part.getName(), part.getInputStream());
+			} else {
+				throw new BadRequestException("Multipart must have only application/json and application/octet-stream");
+			}
+		}
+		if (stream == null) {
+			throw new BadRequestException("Multipart must have one application/json");
+		}
+		BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
+		return new AbstractMap.SimpleEntry<>(read(reader), streams);
+	}
+
+	private boolean multipart(HttpServletRequest request) {
+		String type = request.getContentType();
+		if (type == null) {
+			throw new BadRequestException("Request must have a type");
+		}
+		if (type.startsWith("application/json")) {
+			return false;
+		} else if (type.startsWith("multipart/form-data")) {
+			return true;
+		} else {
+			throw new BadRequestException("Request must be application/json or multipart/form-data");
+		}
+	}
+
 	@Override
 	public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) {
 		String responseBody;
 		String uri = request.getRequestURI();
-		int length = uri.length();
-		String suffix = "";
-		if (length > 4) {
+		boolean list = uri.endsWith("/list");
+		if (list) {
+			int length = uri.length();
 			if (length == 5) {
-				if (uri.equals("/list") || uri.equals("/file")) {
-					suffix = uri;
-					uri = "/";
-				}
+				uri = "/";
 			} else {
-				if (uri.endsWith("/list") || uri.endsWith("/file")) {
-					suffix = uri.substring(length - 5);
-					uri = uri.substring(0, length - 5);
-				}
+				uri = uri.substring(0, length - 5);
 			}
 		}
 		try {
@@ -129,50 +177,48 @@ class Handler extends AbstractHandler {
 			Object body;
 			switch (method) {
 			case "GET":
-				switch (suffix) {
-				case "/file":
-					body = endpoint.getFile(args);
-					break;
-				case "/list":
+				if (list) {
 					body = endpoint.getList(args);
-					break;
-				default:
+				} else {
 					body = endpoint.get(args);
 				}
 				break;
 			case "POST":
-				switch (suffix) {
-				case "/file":
-					body = endpoint.postFile(args, request.getInputStream());
-					break;
-				case "/list":
-					body = endpoint.doPostList(args, read(request));
-					break;
-				default:
-					body = endpoint.doPost(args, read(request));
+				if (multipart(request)) {
+					if (list) {
+						throw new BadRequestException("List POST must be application/json");
+					} else {
+						AbstractMap.SimpleEntry<String, HashMap<String, InputStream>> pair = split(request);
+						body = endpoint.doPost(args, pair.getKey(), pair.getValue());
+					}
+				} else {
+					if (list) {
+						body = endpoint.doPostList(args, read(request));
+					} else {
+						body = endpoint.doPost(args, read(request));
+					}
 				}
 				break;
 			case "PUT":
-				switch (suffix) {
-				case "/file":
-					body = endpoint.putFile(args, request.getInputStream());
-					break;
-				case "/list":
-					body = endpoint.doPutList(args, read(request));
-					break;
-				default:
-					body = endpoint.doPut(args, read(request));
+				if (multipart(request)) {
+					if (list) {
+						throw new BadRequestException("List PUT must be application/json");
+					} else {
+						AbstractMap.SimpleEntry<String, HashMap<String, InputStream>> pair = split(request);
+						body = endpoint.doPut(args, pair.getKey(), pair.getValue());
+					}
+				} else {
+					if (list) {
+						body = endpoint.doPutList(args, read(request));
+					} else {
+						body = endpoint.doPut(args, read(request));
+					}
 				}
 				break;
 			case "DELETE":
-				switch (suffix) {
-				case "/file":
-					body = endpoint.deleteFile(args);
-					break;
-				case "/list":
+				if (list) {
 					body = endpoint.deleteList(args);
-					break;
-				default:
+				} else {
 					body = endpoint.delete(args);
 				}
 				break;
