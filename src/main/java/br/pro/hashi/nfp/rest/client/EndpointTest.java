@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Consumer;
 
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.ContentResponse;
@@ -19,6 +20,7 @@ import org.eclipse.jetty.client.api.Request;
 import org.eclipse.jetty.client.util.InputStreamRequestContent;
 import org.eclipse.jetty.client.util.MultiPartRequestContent;
 import org.eclipse.jetty.client.util.StringRequestContent;
+import org.eclipse.jetty.http.HttpFields.Mutable;
 import org.eclipse.jetty.http.HttpTester;
 
 import com.google.gson.Gson;
@@ -109,8 +111,9 @@ public abstract class EndpointTest {
 	}
 
 	private String sendRequest(String method, String uri, String requestBody) {
+		Consumer<Mutable> consumer = fields -> fields.add("Content-Type", "application/json");
 		Request.Content content = new StringRequestContent(requestBody);
-		return send(request(method, uri).body(content));
+		return send(request(method, uri).headers(consumer).body(content));
 	}
 
 	private String sendRequest(String method, String uri, String requestBody, Map<String, String> paths) {
