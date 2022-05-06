@@ -4,11 +4,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
-import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -17,7 +17,9 @@ import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.ContentResponse;
 import org.eclipse.jetty.client.api.Request;
 import org.eclipse.jetty.client.util.InputStreamRequestContent;
+import org.eclipse.jetty.client.util.MultiPartRequestContent;
 import org.eclipse.jetty.client.util.StringRequestContent;
+import org.eclipse.jetty.http.HttpTester;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -30,32 +32,20 @@ import br.pro.hashi.nfp.rest.client.exception.TimeoutSendException;
 import br.pro.hashi.nfp.rest.server.ListType;
 import br.pro.hashi.nfp.rest.server.exception.ResponseException;
 
-public abstract class EndpointTest<T> {
+public abstract class EndpointTest {
 	private String url;
-	private Type type;
-	private ListType listType;
 	private int timeout;
 	private Gson gson;
 	private HttpClient client;
 
 	protected final void start(String url, int timeout) {
 		this.url = url;
-
-		ParameterizedType genericType = (ParameterizedType) getClass().getGenericSuperclass();
-		Type[] types = genericType.getActualTypeArguments();
-		this.type = types[0];
-
-		this.listType = new ListType(this.type);
-
 		this.timeout = timeout;
-
 		this.gson = new GsonBuilder()
 				.serializeNulls()
 				.setPrettyPrinting()
 				.create();
-
 		this.client = new HttpClient();
-
 		try {
 			this.client.start();
 		} catch (Exception exception) {
@@ -123,14 +113,24 @@ public abstract class EndpointTest<T> {
 		return send(request(method, uri).body(content));
 	}
 
-	private String sendRequest(String method, String uri, File file) {
-		InputStream stream;
-		try {
-			stream = new FileInputStream(file);
-		} catch (FileNotFoundException exception) {
-			throw new IOClientException(exception);
+	private String sendRequest(String method, String uri, String requestBody, Map<String, String> paths) {
+		HttpTester.Request fields;
+		MultiPartRequestContent content = new MultiPartRequestContent();
+		for (String name : paths.keySet()) {
+			File file = new File(paths.get(name));
+			InputStream stream;
+			try {
+				stream = new FileInputStream(file);
+			} catch (FileNotFoundException exception) {
+				throw new IOClientException(exception);
+			}
+			fields = new HttpTester.Request();
+			fields.add("Content-Type", "application/octet-stream");
+			content.addFilePart(name, null, new InputStreamRequestContent(stream), fields);
 		}
-		Request.Content content = new InputStreamRequestContent(stream);
+		fields = new HttpTester.Request();
+		fields.add("Content-Type", "application/json");
+		content.addFieldPart("body", new StringRequestContent(requestBody), fields);
 		return send(request(method, uri).body(content));
 	}
 
@@ -142,8 +142,16 @@ public abstract class EndpointTest<T> {
 		return sendRequest("GET", uri);
 	}
 
+	protected final String post(String uri, String requestBody, Map<String, String> paths) {
+		return sendRequest("POST", uri, requestBody, paths);
+	}
+
 	protected final String post(String uri, String requestBody) {
 		return sendRequest("POST", uri, requestBody);
+	}
+
+	protected final String put(String uri, String requestBody, Map<String, String> paths) {
+		return sendRequest("PUT", uri, requestBody, paths);
 	}
 
 	protected final String put(String uri, String requestBody) {
@@ -154,24 +162,12 @@ public abstract class EndpointTest<T> {
 		return sendRequest("DELETE", uri);
 	}
 
-	protected final String uploadPost(String uri, String path) {
-		return sendRequest("POST", uri, new File(path));
-	}
-
-	protected final String uploadPut(String uri, String path) {
-		return sendRequest("PUT", uri, new File(path));
-	}
-
-	protected final T fromJson(String responseBody) {
+	protected final <T> T fromJson(String responseBody, Type type) {
 		return gson.fromJson(responseBody, type);
 	}
 
-	protected final List<T> listFromJson(String responseBody) {
-		return gson.fromJson(responseBody, listType);
-	}
-
-	protected final <S> S fromJson(String responseBody, Type type) {
-		return gson.fromJson(responseBody, type);
+	protected final <T> List<T> listFromJson(String responseBody, Type type) {
+		return gson.fromJson(responseBody, new ListType(type));
 	}
 
 	protected final void stop() {
