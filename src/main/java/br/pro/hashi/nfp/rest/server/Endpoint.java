@@ -3,8 +3,8 @@ package br.pro.hashi.nfp.rest.server;
 import java.io.InputStream;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
@@ -66,7 +66,7 @@ public abstract class Endpoint<T> {
 		this.gson = gson;
 	}
 
-	Object doPost(Args args, String requestBody, HashMap<String, InputStream> streams) {
+	Object doPost(Args args, String requestBody, Map<String, InputStream> streams) {
 		T body = fromJson("POST", requestBody);
 		return post(args, body, streams);
 	}
@@ -76,7 +76,7 @@ public abstract class Endpoint<T> {
 		return post(args, body);
 	}
 
-	Object doPut(Args args, String requestBody, HashMap<String, InputStream> streams) {
+	Object doPut(Args args, String requestBody, Map<String, InputStream> streams) {
 		T body = fromJson("PUT", requestBody);
 		return put(args, body, streams);
 	}
@@ -94,7 +94,7 @@ public abstract class Endpoint<T> {
 		throw new NotImplementedException("get");
 	}
 
-	protected Object post(Args args, T body, HashMap<String, InputStream> streams) {
+	protected Object post(Args args, T body, Map<String, InputStream> streams) {
 		throw new NotImplementedException("post");
 	}
 
@@ -102,7 +102,7 @@ public abstract class Endpoint<T> {
 		throw new NotImplementedException("post");
 	}
 
-	protected Object put(Args args, T body, HashMap<String, InputStream> streams) {
+	protected Object put(Args args, T body, Map<String, InputStream> streams) {
 		throw new NotImplementedException("put");
 	}
 

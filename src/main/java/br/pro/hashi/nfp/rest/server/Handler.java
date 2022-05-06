@@ -96,9 +96,9 @@ class Handler extends AbstractHandler {
 		return read(reader);
 	}
 
-	private AbstractMap.SimpleEntry<String, HashMap<String, InputStream>> split(HttpServletRequest request) throws IOException, ServletException {
+	private AbstractMap.SimpleEntry<String, Map<String, InputStream>> split(HttpServletRequest request) throws IOException, ServletException {
 		InputStream keyStream = null;
-		HashMap<String, InputStream> streams = new HashMap<>();
+		Map<String, InputStream> streams = new HashMap<>();
 		request.setAttribute(Request.__MULTIPART_CONFIG_ELEMENT, element);
 		for (Part part : request.getParts()) {
 			String type = part.getContentType();
@@ -197,7 +197,7 @@ class Handler extends AbstractHandler {
 					throw new NotSupportedException("post");
 				} else {
 					if (multipart(request)) {
-						AbstractMap.SimpleEntry<String, HashMap<String, InputStream>> pair = split(request);
+						AbstractMap.SimpleEntry<String, Map<String, InputStream>> pair = split(request);
 						body = endpoint.doPost(args, pair.getKey(), pair.getValue());
 					} else {
 						body = endpoint.doPost(args, read(request));
@@ -209,7 +209,7 @@ class Handler extends AbstractHandler {
 					throw new NotSupportedException("put");
 				} else {
 					if (multipart(request)) {
-						AbstractMap.SimpleEntry<String, HashMap<String, InputStream>> pair = split(request);
+						AbstractMap.SimpleEntry<String, Map<String, InputStream>> pair = split(request);
 						body = endpoint.doPut(args, pair.getKey(), pair.getValue());
 					} else {
 						body = endpoint.doPut(args, read(request));
