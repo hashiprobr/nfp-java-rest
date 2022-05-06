@@ -16,7 +16,6 @@ import br.pro.hashi.nfp.rest.server.exception.ServerException;
 public abstract class Endpoint<T> {
 	private final String uri;
 	private final Type type;
-	private final ListType listType;
 	private final boolean plain;
 	private Gson gson;
 
@@ -36,33 +35,27 @@ public abstract class Endpoint<T> {
 		Type[] types = genericType.getActualTypeArguments();
 		this.type = types[0];
 
-		this.listType = new ListType(this.type);
-
 		this.plain = this.type == String.class;
 
 		this.gson = null;
 	}
 
-	private <S> S fromJson(String method, String requestBody, Type type) {
-		S body;
-		try {
-			body = gson.fromJson(requestBody, type);
-		} catch (JsonSyntaxException exception) {
-			throw new BadRequestException("Invalid %s body: %s".formatted(method, exception.getMessage()));
-		}
-		if (body == null) {
-			throw new BadRequestException("%s must have a body".formatted(method));
-		}
-		return body;
-	}
-
 	@SuppressWarnings("unchecked")
 	private <S> S fromJson(String method, String requestBody) {
+		S body;
 		if (plain) {
-			return (S) requestBody;
+			body = (S) requestBody;
 		} else {
-			return fromJson(method, requestBody, type);
+			try {
+				body = gson.fromJson(requestBody, type);
+			} catch (JsonSyntaxException exception) {
+				throw new BadRequestException("Invalid %s body: %s".formatted(method, exception.getMessage()));
+			}
+			if (body == null) {
+				throw new BadRequestException("%s must have a body".formatted(method));
+			}
 		}
+		return body;
 	}
 
 	String getUri() {
@@ -83,11 +76,6 @@ public abstract class Endpoint<T> {
 		return post(args, body);
 	}
 
-	Object doPostList(Args args, String requestBody) {
-		List<T> body = fromJson("POST", requestBody, listType);
-		return postList(args, body);
-	}
-
 	Object doPut(Args args, String requestBody, HashMap<String, InputStream> streams) {
 		T body = fromJson("PUT", requestBody);
 		return put(args, body, streams);
@@ -96,11 +84,6 @@ public abstract class Endpoint<T> {
 	Object doPut(Args args, String requestBody) {
 		T body = fromJson("PUT", requestBody);
 		return put(args, body);
-	}
-
-	Object doPutList(Args args, String requestBody) {
-		List<T> body = fromJson("PUT", requestBody, listType);
-		return putList(args, body);
 	}
 
 	protected T get(Args args) {
@@ -119,19 +102,11 @@ public abstract class Endpoint<T> {
 		throw new NotImplementedException("post");
 	}
 
-	protected Object postList(Args args, List<T> body) {
-		throw new NotImplementedException("post");
-	}
-
 	protected Object put(Args args, T body, HashMap<String, InputStream> streams) {
 		throw new NotImplementedException("put");
 	}
 
 	protected Object put(Args args, T body) {
-		throw new NotImplementedException("put");
-	}
-
-	protected Object putList(Args args, List<T> body) {
 		throw new NotImplementedException("put");
 	}
 

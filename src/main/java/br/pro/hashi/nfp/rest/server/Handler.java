@@ -8,6 +8,7 @@ import java.io.PrintWriter;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.AbstractMap;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -35,6 +36,7 @@ class Handler extends AbstractHandler {
 	private final Map<String, Endpoint<?>> endpoints;
 	private final char[] buffer;
 	private MultipartConfigElement element;
+	private Base64.Decoder decoder;
 
 	Handler(String name) {
 		super();
@@ -71,7 +73,8 @@ class Handler extends AbstractHandler {
 			this.endpoints.put(endpoint.getUri(), endpoint);
 		}
 		this.buffer = new char[8192];
-		this.element = new MultipartConfigElement("tmp");
+		this.element = new MultipartConfigElement("target");
+		this.decoder = Base64.getDecoder();
 	}
 
 	private String read(BufferedReader reader) throws IOException {
@@ -94,7 +97,7 @@ class Handler extends AbstractHandler {
 	}
 
 	private AbstractMap.SimpleEntry<String, HashMap<String, InputStream>> split(HttpServletRequest request) throws IOException, ServletException {
-		InputStream stream = null;
+		InputStream keyStream = null;
 		HashMap<String, InputStream> streams = new HashMap<>();
 		request.setAttribute(Request.__MULTIPART_CONFIG_ELEMENT, element);
 		for (Part part : request.getParts()) {
@@ -103,21 +106,27 @@ class Handler extends AbstractHandler {
 				throw new BadRequestException("Multipart must have types");
 			}
 			if (type.startsWith("application/json")) {
-				if (stream == null) {
-					stream = part.getInputStream();
+				if (keyStream == null) {
+					keyStream = part.getInputStream();
 				} else {
 					throw new BadRequestException("Multipart must have only one application/json");
 				}
 			} else if (type.startsWith("application/octet-stream")) {
-				streams.put(part.getName(), part.getInputStream());
+				String name = part.getName();
+				InputStream fileStream = part.getInputStream();
+				if (type.substring(24).startsWith(";base64")) {
+					streams.put(name, decoder.wrap(fileStream));
+				} else {
+					streams.put(name, fileStream);
+				}
 			} else {
 				throw new BadRequestException("Multipart must have only application/json and application/octet-stream");
 			}
 		}
-		if (stream == null) {
+		if (keyStream == null) {
 			throw new BadRequestException("Multipart must have one application/json");
 		}
-		BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
+		BufferedReader reader = new BufferedReader(new InputStreamReader(keyStream));
 		return new AbstractMap.SimpleEntry<>(read(reader), streams);
 	}
 
@@ -184,32 +193,24 @@ class Handler extends AbstractHandler {
 				}
 				break;
 			case "POST":
-				if (multipart(request)) {
-					if (list) {
-						throw new BadRequestException("List POST must be application/json");
-					} else {
+				if (list) {
+					throw new NotSupportedException("post");
+				} else {
+					if (multipart(request)) {
 						AbstractMap.SimpleEntry<String, HashMap<String, InputStream>> pair = split(request);
 						body = endpoint.doPost(args, pair.getKey(), pair.getValue());
-					}
-				} else {
-					if (list) {
-						body = endpoint.doPostList(args, read(request));
 					} else {
 						body = endpoint.doPost(args, read(request));
 					}
 				}
 				break;
 			case "PUT":
-				if (multipart(request)) {
-					if (list) {
-						throw new BadRequestException("List PUT must be application/json");
-					} else {
+				if (list) {
+					throw new NotSupportedException("put");
+				} else {
+					if (multipart(request)) {
 						AbstractMap.SimpleEntry<String, HashMap<String, InputStream>> pair = split(request);
 						body = endpoint.doPut(args, pair.getKey(), pair.getValue());
-					}
-				} else {
-					if (list) {
-						body = endpoint.doPutList(args, read(request));
 					} else {
 						body = endpoint.doPut(args, read(request));
 					}
