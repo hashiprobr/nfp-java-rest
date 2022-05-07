@@ -1,13 +1,13 @@
-package br.pro.hashi.nfp.rest.server;
+package br.pro.hashi.nfp.rest.client;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.List;
 
-public class ListType implements ParameterizedType {
+class ListType implements ParameterizedType {
 	private final Type[] types;
 
-	public ListType(Type type) {
+	ListType(Type type) {
 		this.types = new Type[1];
 		this.types[0] = type;
 	}

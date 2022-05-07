@@ -31,7 +31,6 @@ import br.pro.hashi.nfp.rest.client.exception.ExecutionSendException;
 import br.pro.hashi.nfp.rest.client.exception.IOClientException;
 import br.pro.hashi.nfp.rest.client.exception.InterruptedSendException;
 import br.pro.hashi.nfp.rest.client.exception.TimeoutSendException;
-import br.pro.hashi.nfp.rest.server.ListType;
 import br.pro.hashi.nfp.rest.server.exception.ResponseException;
 
 public abstract class EndpointTest {
@@ -134,6 +133,7 @@ public abstract class EndpointTest {
 		fields = new HttpTester.Request();
 		fields.add("Content-Type", "application/json");
 		content.addFieldPart("body", new StringRequestContent(requestBody), fields);
+		content.close();
 		return send(request(method, uri).body(content));
 	}
 
@@ -169,7 +169,7 @@ public abstract class EndpointTest {
 		return gson.fromJson(responseBody, type);
 	}
 
-	protected final <T> List<T> listFromJson(String responseBody, Type type) {
+	protected final <T> List<T> fromJsonList(String responseBody, Type type) {
 		return gson.fromJson(responseBody, new ListType(type));
 	}
 
