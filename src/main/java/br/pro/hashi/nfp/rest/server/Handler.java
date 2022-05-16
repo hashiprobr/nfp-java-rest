@@ -147,7 +147,6 @@ class Handler extends AbstractHandler {
 
 	@Override
 	public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) {
-		String responseBody;
 		String uri = request.getRequestURI();
 		boolean list = uri.endsWith("/list");
 		if (list) {
@@ -158,6 +157,7 @@ class Handler extends AbstractHandler {
 				uri = uri.substring(0, length - 5);
 			}
 		}
+		String responseBody;
 		try {
 			Endpoint<?> endpoint;
 			if (endpoints.containsKey(uri)) {
@@ -223,18 +223,31 @@ class Handler extends AbstractHandler {
 				}
 				break;
 			case "OPTIONS":
-				body = "";
+				body = null;
 				break;
 			default:
 				throw new NotSupportedException(method);
 			}
-			response.setStatus(HttpServletResponse.SC_OK);
-			if (body instanceof String) {
-				response.setContentType("text/plain");
-				responseBody = (String) body;
+			if (body == null) {
+				if (method.equals("OPTIONS")) {
+					response.setStatus(HttpServletResponse.SC_OK);
+				} else {
+					response.setStatus(HttpServletResponse.SC_NO_CONTENT);
+				}
+				responseBody = null;
 			} else {
-				response.setContentType("application/json");
-				responseBody = gson.toJson(body);
+				if (method.equals("POST")) {
+					response.setStatus(HttpServletResponse.SC_CREATED);
+				} else {
+					response.setStatus(HttpServletResponse.SC_OK);
+				}
+				if (body instanceof String) {
+					response.setContentType("text/plain");
+					responseBody = (String) body;
+				} else {
+					response.setContentType("application/json");
+					responseBody = gson.toJson(body);
+				}
 			}
 		} catch (ResponseException exception) {
 			response.setStatus(exception.getStatus());
@@ -246,17 +259,18 @@ class Handler extends AbstractHandler {
 			response.setContentType("text/plain");
 			responseBody = "Internal server error";
 		}
-		response.setCharacterEncoding("UTF-8");
 		response.addHeader("Access-Control-Allow-Origin", "*");
 		response.addHeader("Access-Control-Allow-Methods", "*");
 		response.addHeader("Access-Control-Allow-Headers", "*");
-		PrintWriter writer;
-		try {
-			writer = response.getWriter();
-		} catch (IOException exception) {
-			throw new IOServerException(exception);
+		if (responseBody != null) {
+			PrintWriter writer;
+			try {
+				writer = response.getWriter();
+			} catch (IOException exception) {
+				throw new IOServerException(exception);
+			}
+			writer.print(responseBody);
 		}
-		writer.print(responseBody);
 		baseRequest.setHandled(true);
 	}
 }
