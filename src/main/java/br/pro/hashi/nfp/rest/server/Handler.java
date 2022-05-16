@@ -25,6 +25,7 @@ import br.pro.hashi.nfp.rest.server.exception.NotFoundException;
 import br.pro.hashi.nfp.rest.server.exception.NotSupportedException;
 import br.pro.hashi.nfp.rest.server.exception.ResponseException;
 import br.pro.hashi.nfp.rest.server.exception.ServerException;
+import br.pro.hashi.nfp.rest.server.exception.UnsupportedMediaTypeException;
 import jakarta.servlet.MultipartConfigElement;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -106,7 +107,7 @@ class Handler extends AbstractHandler {
 		} else if (type.startsWith("multipart/form-data")) {
 			return true;
 		} else {
-			throw new BadRequestException("Request must be application/json or multipart/form-data");
+			throw new UnsupportedMediaTypeException("Request must be application/json or multipart/form-data");
 		}
 	}
 
@@ -134,7 +135,7 @@ class Handler extends AbstractHandler {
 					files.put(name, fileStream);
 				}
 			} else {
-				throw new BadRequestException("Multipart must have only application/json and application/octet-stream");
+				throw new UnsupportedMediaTypeException("Multipart must have only application/json and application/octet-stream");
 			}
 		}
 		if (keyStream == null) {
