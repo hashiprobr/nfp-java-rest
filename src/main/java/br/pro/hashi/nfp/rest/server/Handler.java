@@ -165,7 +165,6 @@ class Handler extends AbstractHandler {
 			} else {
 				throw new NotFoundException("Endpoint %s does not exist".formatted(uri));
 			}
-
 			Map<String, String[]> map = request.getParameterMap();
 			Args args = new Args();
 			for (String name : map.keySet()) {
@@ -182,7 +181,6 @@ class Handler extends AbstractHandler {
 				}
 				args.put(name, value);
 			}
-
 			String method = request.getMethod();
 			Object body;
 			switch (method) {
