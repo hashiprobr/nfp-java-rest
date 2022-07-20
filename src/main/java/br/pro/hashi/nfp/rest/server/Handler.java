@@ -5,26 +5,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.util.AbstractMap;
 import java.util.Base64;
-import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
-import org.reflections.Reflections;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 import br.pro.hashi.nfp.rest.server.exception.BadRequestException;
-import br.pro.hashi.nfp.rest.server.exception.IOServerException;
+import br.pro.hashi.nfp.rest.server.exception.MethodNotAllowedException;
 import br.pro.hashi.nfp.rest.server.exception.NotFoundException;
-import br.pro.hashi.nfp.rest.server.exception.NotSupportedException;
-import br.pro.hashi.nfp.rest.server.exception.ResponseException;
-import br.pro.hashi.nfp.rest.server.exception.ServerException;
+import br.pro.hashi.nfp.rest.server.exception.ResponseServerException;
 import br.pro.hashi.nfp.rest.server.exception.UnsupportedMediaTypeException;
 import jakarta.servlet.MultipartConfigElement;
 import jakarta.servlet.ServletException;
@@ -33,48 +26,17 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.Part;
 
 class Handler extends AbstractHandler {
-	private final Gson gson;
 	private final Map<String, Endpoint<?>> endpoints;
+	private final Gson gson;
 	private final char[] buffer;
-	private MultipartConfigElement element;
-	private Base64.Decoder decoder;
+	private final MultipartConfigElement element;
+	private final Base64.Decoder decoder;
 
-	Handler(String name) {
-		super();
-		if (name == null) {
-			throw new ServerException("Name cannot be null");
-		}
-		if (name.isBlank()) {
-			throw new ServerException("Name cannot be blank");
-		}
-		Reflections reflections = new Reflections(name);
-		this.gson = new GsonBuilder()
-				.serializeNulls()
-				.setPrettyPrinting()
-				.create();
-		this.endpoints = new HashMap<>();
-		for (Class<?> type : reflections.getSubTypesOf(Endpoint.class)) {
-			Constructor<?> constructor;
-			try {
-				constructor = type.getConstructor();
-			} catch (NoSuchMethodException exception) {
-				throw new ServerException("Class %s must have a public no-argument constructor".formatted(type.getName()));
-			}
-			Endpoint<?> endpoint;
-			try {
-				endpoint = (Endpoint<?>) constructor.newInstance();
-			} catch (InvocationTargetException exception) {
-				throw new ServerException(exception);
-			} catch (IllegalAccessException exception) {
-				throw new ServerException(exception);
-			} catch (InstantiationException exception) {
-				throw new ServerException(exception);
-			}
-			endpoint.setGson(this.gson);
-			this.endpoints.put(endpoint.getUri(), endpoint);
-		}
+	Handler(Map<String, Endpoint<?>> endpoints, Gson gson) {
+		this.endpoints = endpoints;
+		this.gson = gson;
 		this.buffer = new char[8192];
-		this.element = new MultipartConfigElement("target");
+		this.element = new MultipartConfigElement("");
 		this.decoder = Base64.getDecoder();
 	}
 
@@ -97,150 +59,180 @@ class Handler extends AbstractHandler {
 		return read(reader);
 	}
 
+	private Map.Entry<String, Files> split(HttpServletRequest request) throws ServletException, IOException {
+		request.setAttribute(Request.__MULTIPART_CONFIG_ELEMENT, element);
+		InputStream bodyStream = null;
+		Files files = new Files();
+		for (Part part : request.getParts()) {
+			String name = part.getName();
+			if (name == null) {
+				throw new BadRequestException("Request part must have a name");
+			}
+			name = name.strip();
+			if (name.isEmpty()) {
+				throw new BadRequestException("Request part name cannot be blank");
+			}
+			String type = part.getContentType();
+			if (name.equals("body")) {
+				if (bodyStream == null) {
+					if (type == null) {
+						throw new BadRequestException("Request part named body must have a type");
+					}
+					type = type.strip();
+					if (!type.startsWith("application/json")) {
+						throw new BadRequestException("Request part named body must be application/json");
+					}
+					bodyStream = part.getInputStream();
+				} else {
+					throw new BadRequestException("Multipart request must have only one part named body");
+				}
+			} else {
+				InputStream fileStream = part.getInputStream();
+				if (type != null && type.contains(";base64")) {
+					files.put(name, decoder.wrap(fileStream));
+				} else {
+					files.put(name, fileStream);
+				}
+			}
+		}
+		if (bodyStream == null) {
+			throw new BadRequestException("Multipart request must have one part named body");
+		}
+		BufferedReader reader = new BufferedReader(new InputStreamReader(bodyStream));
+		return new AbstractMap.SimpleEntry<>(read(reader), files);
+	}
+
 	private boolean multipart(HttpServletRequest request) {
 		String type = request.getContentType();
 		if (type == null) {
 			throw new BadRequestException("Request must have a type");
 		}
+		type = type.strip();
 		if (type.startsWith("application/json")) {
 			return false;
-		} else if (type.startsWith("multipart/form-data")) {
+		}
+		if (type.startsWith("multipart/form-data")) {
 			return true;
-		} else {
-			throw new UnsupportedMediaTypeException("Request must be application/json or multipart/form-data");
 		}
-	}
-
-	private AbstractMap.SimpleEntry<String, Files> split(HttpServletRequest request) throws ServletException, IOException {
-		InputStream keyStream = null;
-		Files files = new Files();
-		request.setAttribute(Request.__MULTIPART_CONFIG_ELEMENT, element);
-		for (Part part : request.getParts()) {
-			String type = part.getContentType();
-			if (type == null) {
-				throw new BadRequestException("Multipart must have types");
-			}
-			if (type.startsWith("application/json")) {
-				if (keyStream == null) {
-					keyStream = part.getInputStream();
-				} else {
-					throw new BadRequestException("Multipart must have only one application/json");
-				}
-			} else if (type.startsWith("application/octet-stream")) {
-				String name = part.getName();
-				InputStream fileStream = part.getInputStream();
-				if (type.contains("base64")) {
-					files.put(name, decoder.wrap(fileStream));
-				} else {
-					files.put(name, fileStream);
-				}
-			} else {
-				throw new UnsupportedMediaTypeException("Multipart must have only application/json and application/octet-stream");
-			}
-		}
-		if (keyStream == null) {
-			throw new BadRequestException("Multipart must have one application/json");
-		}
-		BufferedReader reader = new BufferedReader(new InputStreamReader(keyStream));
-		return new AbstractMap.SimpleEntry<>(read(reader), files);
+		throw new UnsupportedMediaTypeException("Request must be application/json or multipart/form-data");
 	}
 
 	@Override
 	public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) {
-		String uri = request.getRequestURI();
-		boolean list = uri.endsWith("/list");
-		if (list) {
-			int length = uri.length();
-			if (length == 5) {
-				uri = "/";
-			} else {
-				uri = uri.substring(0, length - 5);
+		String uri = request.getRequestURI().strip();
+		String key = "";
+		int index = uri.indexOf('/', 1);
+		if (index != -1) {
+			uri = uri.substring(0, index).strip();
+			key = uri.substring(index + 1).strip();
+			while (key.endsWith("/")) {
+				key = key.substring(0, key.length() - 1).strip();
 			}
 		}
+
 		String responseBody;
 		try {
-			Endpoint<?> endpoint;
-			if (endpoints.containsKey(uri)) {
-				endpoint = endpoints.get(uri);
-			} else {
-				throw new NotFoundException("Endpoint %s does not exist".formatted(uri));
+			Endpoint<?> endpoint = endpoints.get(uri);
+			if (endpoint == null) {
+				throw new NotFoundException("Endpoint with URI %s does not exist".formatted(uri));
 			}
+
 			Map<String, String[]> map = request.getParameterMap();
 			Args args = new Args();
 			for (String name : map.keySet()) {
-				if (name.isBlank()) {
+				String[] values = map.get(name);
+				name = name.strip();
+				if (name.isEmpty()) {
 					throw new BadRequestException("Arg name cannot be blank");
 				}
-				String[] values = map.get(name);
-				if (values.length > 1) {
-					throw new BadRequestException("Arg %s must have a single value".formatted(name));
+				if (values.length < 1) {
+					throw new BadRequestException("Arg %s must have one value".formatted(name));
 				}
-				String value = values[0];
-				if (value.isBlank()) {
+				if (values.length > 1) {
+					throw new BadRequestException("Arg %s must have only one value".formatted(name));
+				}
+				String value = values[0].strip();
+				if (value.isEmpty()) {
 					throw new BadRequestException("Arg %s cannot have a blank value".formatted(name));
 				}
 				args.put(name, value);
 			}
+
 			String method = request.getMethod();
 			Object body;
 			switch (method) {
+			case "HEAD":
 			case "GET":
-				if (list) {
-					body = endpoint.getList(args);
-				} else {
+				if (key.isEmpty()) {
 					body = endpoint.get(args);
+				} else {
+					body = endpoint.get(key, args);
 				}
 				break;
 			case "POST":
-				if (list) {
-					throw new NotSupportedException("post");
-				} else {
+				if (key.isEmpty()) {
 					if (multipart(request)) {
-						AbstractMap.SimpleEntry<String, Files> pair = split(request);
-						body = endpoint.doPost(args, pair.getKey(), pair.getValue());
+						Map.Entry<String, Files> pair = split(request);
+						body = endpoint.doPost(pair.getKey(), pair.getValue(), args);
 					} else {
-						body = endpoint.doPost(args, read(request));
+						body = endpoint.doPost(read(request), args);
 					}
+				} else {
+					throw new MethodNotAllowedException("Method POST with key not allowed");
 				}
 				break;
 			case "PUT":
-				if (list) {
-					throw new NotSupportedException("put");
-				} else {
+				if (key.isEmpty()) {
 					if (multipart(request)) {
-						AbstractMap.SimpleEntry<String, Files> pair = split(request);
-						body = endpoint.doPut(args, pair.getKey(), pair.getValue());
+						Map.Entry<String, Files> pair = split(request);
+						body = endpoint.doPut(pair.getKey(), pair.getValue(), args);
 					} else {
-						body = endpoint.doPut(args, read(request));
+						body = endpoint.doPut(read(request), args);
 					}
+				} else {
+					throw new MethodNotAllowedException("Method PUT with key not allowed");
+				}
+				break;
+			case "PATCH":
+				if (key.isEmpty()) {
+					if (multipart(request)) {
+						Map.Entry<String, Files> pair = split(request);
+						body = endpoint.doPatch(pair.getKey(), pair.getValue(), args);
+					} else {
+						body = endpoint.doPatch(read(request), args);
+					}
+				} else {
+					throw new MethodNotAllowedException("Method PATCH with key not allowed");
 				}
 				break;
 			case "DELETE":
-				if (list) {
-					body = endpoint.deleteList(args);
-				} else {
+				if (key.isEmpty()) {
 					body = endpoint.delete(args);
+				} else {
+					body = endpoint.delete(key, args);
 				}
 				break;
 			case "OPTIONS":
 				body = null;
 				break;
 			default:
-				throw new NotSupportedException(method);
+				throw new MethodNotAllowedException("Method %s not allowed".formatted(method));
 			}
-			if (body == null) {
-				if (method.equals("OPTIONS")) {
+			if (method.equals("POST")) {
+				response.setStatus(HttpServletResponse.SC_CREATED);
+			} else {
+				if (method.equals("OPTIONS") || body != null) {
 					response.setStatus(HttpServletResponse.SC_OK);
 				} else {
 					response.setStatus(HttpServletResponse.SC_NO_CONTENT);
 				}
+			}
+			if (body == null) {
+				if (method.equals("HEAD")) {
+					response.setContentLength(0);
+				}
 				responseBody = null;
 			} else {
-				if (method.equals("POST")) {
-					response.setStatus(HttpServletResponse.SC_CREATED);
-				} else {
-					response.setStatus(HttpServletResponse.SC_OK);
-				}
 				if (body instanceof String) {
 					response.setContentType("text/plain");
 					responseBody = (String) body;
@@ -248,8 +240,12 @@ class Handler extends AbstractHandler {
 					response.setContentType("application/json");
 					responseBody = gson.toJson(body);
 				}
+				if (method.equals("HEAD")) {
+					response.setContentLength(responseBody.getBytes().length);
+					responseBody = null;
+				}
 			}
-		} catch (ResponseException exception) {
+		} catch (ResponseServerException exception) {
 			response.setStatus(exception.getStatus());
 			response.setContentType("text/plain");
 			responseBody = exception.getMessage();
@@ -259,17 +255,17 @@ class Handler extends AbstractHandler {
 			response.setContentType("text/plain");
 			responseBody = "Internal server error";
 		}
+
 		response.addHeader("Access-Control-Allow-Origin", "*");
 		response.addHeader("Access-Control-Allow-Methods", "*");
 		response.addHeader("Access-Control-Allow-Headers", "*");
 		if (responseBody != null) {
-			PrintWriter writer;
 			try {
-				writer = response.getWriter();
+				PrintWriter writer = response.getWriter();
+				writer.print(responseBody);
 			} catch (IOException exception) {
-				throw new IOServerException(exception);
+				exception.printStackTrace();
 			}
-			writer.print(responseBody);
 		}
 		baseRequest.setHandled(true);
 	}

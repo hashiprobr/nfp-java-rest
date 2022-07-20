@@ -2,7 +2,7 @@ package br.pro.hashi.nfp.rest.server.exception;
 
 import jakarta.servlet.http.HttpServletResponse;
 
-public class BadRequestException extends ResponseException {
+public class BadRequestException extends ResponseServerException {
 	private static final long serialVersionUID = -2381191863286236154L;
 
 	public BadRequestException(String message) {

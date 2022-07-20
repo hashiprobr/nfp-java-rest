@@ -10,29 +10,28 @@ import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.ErrorHandler;
 import org.eclipse.jetty.util.BufferUtil;
 
-import br.pro.hashi.nfp.rest.server.exception.IOServerException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 class JsonErrorHandler extends ErrorHandler {
 	@Override
 	public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) {
+		response.addHeader("Access-Control-Allow-Origin", "*");
+		response.addHeader("Access-Control-Allow-Methods", "*");
+		response.addHeader("Access-Control-Allow-Headers", "*");
 		String message = (String) request.getAttribute(Dispatcher.ERROR_MESSAGE);
 		if (message == null) {
 			message = baseRequest.getResponse().getReason();
 		}
-		response.setContentType("text/plain");
-		response.setCharacterEncoding("UTF-8");
-		response.addHeader("Access-Control-Allow-Origin", "*");
-		response.addHeader("Access-Control-Allow-Methods", "*");
-		response.addHeader("Access-Control-Allow-Headers", "*");
-		PrintWriter writer;
-		try {
-			writer = response.getWriter();
-		} catch (IOException exception) {
-			throw new IOServerException(exception);
+		if (message != null) {
+			response.setContentType("text/plain");
+			try {
+				PrintWriter writer = response.getWriter();
+				writer.print(message);
+			} catch (IOException exception) {
+				exception.printStackTrace();
+			}
 		}
-		writer.print(message);
 		baseRequest.setHandled(true);
 	}
 

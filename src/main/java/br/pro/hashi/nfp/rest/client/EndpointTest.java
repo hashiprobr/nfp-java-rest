@@ -31,7 +31,7 @@ import br.pro.hashi.nfp.rest.client.exception.ExecutionSendException;
 import br.pro.hashi.nfp.rest.client.exception.IOClientException;
 import br.pro.hashi.nfp.rest.client.exception.InterruptedSendException;
 import br.pro.hashi.nfp.rest.client.exception.TimeoutSendException;
-import br.pro.hashi.nfp.rest.server.exception.ResponseException;
+import br.pro.hashi.nfp.rest.server.exception.ResponseServerException;
 
 public abstract class EndpointTest {
 	private String url;
@@ -63,14 +63,15 @@ public abstract class EndpointTest {
 	}
 
 	private Request request(String method, String uri) {
-		int index = uri.indexOf("?");
+		int index = uri.indexOf('?');
 		if (index != -1) {
 			String args = uri.substring(index + 1);
 			uri = uri.substring(0, index);
-			if (!args.isBlank()) {
+			args = args.strip();
+			if (!args.isEmpty()) {
 				String[] items = args.split("&");
 				for (int i = 0; i < items.length; i++) {
-					int subIndex = items[i].indexOf("=");
+					int subIndex = items[i].indexOf('=');
 					if (subIndex == -1) {
 						items[i] = encode(items[i]);
 					} else {
@@ -97,10 +98,14 @@ public abstract class EndpointTest {
 		} catch (InterruptedException exception) {
 			throw new InterruptedSendException(exception);
 		}
+		String responseBody = null;
 		int status = response.getStatus();
-		String responseBody = response.getContentAsString();
-		if (status != 200) {
-			throw new ResponseException(status, responseBody);
+		if (status >= 200 && status < 300) {
+			if (status != 204) {
+				responseBody = response.getContentAsString();
+			}
+		} else {
+			throw new ResponseServerException(status, response.getContentAsString());
 		}
 		return responseBody;
 	}
@@ -109,32 +114,32 @@ public abstract class EndpointTest {
 		return send(request(method, uri));
 	}
 
-	private String sendRequest(String method, String uri, String requestBody) {
-		Consumer<Mutable> consumer = fields -> fields.add("Content-Type", "application/json");
-		Request.Content content = new StringRequestContent(requestBody);
-		return send(request(method, uri).headers(consumer).body(content));
-	}
-
 	private String sendRequest(String method, String uri, String requestBody, Map<String, String> paths) {
-		HttpTester.Request fields;
-		MultiPartRequestContent content = new MultiPartRequestContent();
-		for (String name : paths.keySet()) {
-			File file = new File(paths.get(name));
-			InputStream stream;
-			try {
-				stream = new FileInputStream(file);
-			} catch (FileNotFoundException exception) {
-				throw new IOClientException(exception);
+		if (paths == null) {
+			Consumer<Mutable> consumer = fields -> fields.add("Content-Type", "application/json");
+			Request.Content content = new StringRequestContent(requestBody);
+			return send(request(method, uri).headers(consumer).body(content));
+		} else {
+			HttpTester.Request fields;
+			MultiPartRequestContent content = new MultiPartRequestContent();
+			for (String name : paths.keySet()) {
+				File file = new File(paths.get(name));
+				InputStream stream;
+				try {
+					stream = new FileInputStream(file);
+				} catch (FileNotFoundException exception) {
+					throw new IOClientException(exception);
+				}
+				fields = new HttpTester.Request();
+				fields.add("Content-Type", "application/octet-stream");
+				content.addFilePart(name, null, new InputStreamRequestContent(stream), fields);
 			}
 			fields = new HttpTester.Request();
-			fields.add("Content-Type", "application/octet-stream");
-			content.addFilePart(name, null, new InputStreamRequestContent(stream), fields);
+			fields.add("Content-Type", "application/json");
+			content.addFieldPart("body", new StringRequestContent(requestBody), fields);
+			content.close();
+			return send(request(method, uri).body(content));
 		}
-		fields = new HttpTester.Request();
-		fields.add("Content-Type", "application/json");
-		content.addFieldPart("body", new StringRequestContent(requestBody), fields);
-		content.close();
-		return send(request(method, uri).body(content));
 	}
 
 	protected final String toJson(Object body) {
@@ -150,7 +155,7 @@ public abstract class EndpointTest {
 	}
 
 	protected final String post(String uri, String requestBody) {
-		return sendRequest("POST", uri, requestBody);
+		return post(uri, requestBody, null);
 	}
 
 	protected final String put(String uri, String requestBody, Map<String, String> paths) {
@@ -158,7 +163,15 @@ public abstract class EndpointTest {
 	}
 
 	protected final String put(String uri, String requestBody) {
-		return sendRequest("PUT", uri, requestBody);
+		return put(uri, requestBody, null);
+	}
+
+	protected final String patch(String uri, String requestBody, Map<String, String> paths) {
+		return sendRequest("PATCH", uri, requestBody, paths);
+	}
+
+	protected final String patch(String uri, String requestBody) {
+		return put(uri, requestBody, null);
 	}
 
 	protected final String delete(String uri) {
@@ -169,7 +182,7 @@ public abstract class EndpointTest {
 		return gson.fromJson(responseBody, type);
 	}
 
-	protected final <T> List<T> fromJsonList(String responseBody, Type type) {
+	protected final <T> List<T> fromListJson(String responseBody, Type type) {
 		return gson.fromJson(responseBody, new ListType(type));
 	}
 
