@@ -5,12 +5,10 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.util.Iterator;
 
-import org.reflections.Reflections;
-
 import br.pro.hashi.nfp.rest.exception.ReflectionsException;
 
-public class SimpleReflections extends Reflections {
-	public SimpleReflections(String prefix) {
+public class Reflections extends org.reflections.Reflections {
+	public Reflections(String prefix) {
 		super(prefix);
 	}
 
@@ -22,7 +20,7 @@ public class SimpleReflections extends Reflections {
 						.filter((subType) -> !Modifier.isAbstract(subType.getModifiers()))
 						.iterator();
 
-				return new Iterator<E>() {
+				return new Iterator<>() {
 					@Override
 					public boolean hasNext() {
 						return iterator.hasNext();
@@ -34,7 +32,7 @@ public class SimpleReflections extends Reflections {
 						E instance;
 						try {
 							Constructor<? extends E> constructor = subType.getConstructor();
-							instance = (E) constructor.newInstance();
+							instance = constructor.newInstance();
 						} catch (NoSuchMethodException exception) {
 							throw new ReflectionsException(exception);
 						} catch (InvocationTargetException exception) {
