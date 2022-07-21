@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap;
 import java.util.Base64;
 import java.util.Map;
@@ -119,16 +121,18 @@ class Handler extends AbstractHandler {
 
 	@Override
 	public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) {
-		String uri = request.getRequestURI().strip();
 		String key = "";
+		String uri = request.getRequestURI().strip();
 		int index = uri.indexOf('/', 1);
 		if (index != -1) {
-			uri = uri.substring(0, index).strip();
 			key = uri.substring(index + 1).strip();
+			uri = uri.substring(0, index).strip();
 			while (key.endsWith("/")) {
 				key = key.substring(0, key.length() - 1).strip();
 			}
 		}
+		key = URLDecoder.decode(key, StandardCharsets.UTF_8).strip();
+		uri = URLDecoder.decode(uri, StandardCharsets.UTF_8).strip();
 
 		String responseBody;
 		try {

@@ -3,6 +3,7 @@ package br.pro.hashi.nfp.rest.client;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -12,6 +13,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.ContentResponse;
@@ -81,8 +83,15 @@ public class RESTClient {
 		logger.info("REST client stopped");
 	}
 
-	private String encode(String subItem) {
-		return URLEncoder.encode(subItem, StandardCharsets.UTF_8);
+	private String encodePaths(String uri) {
+		Stream<String> stream = Stream.of(uri.split("/"))
+				.map((path) -> URLDecoder.decode(path, StandardCharsets.UTF_8))
+				.map((path) -> URLEncoder.encode(path, StandardCharsets.UTF_8).replace("+", "%20"));
+		return String.join("/", stream.toList());
+	}
+
+	private String encodeQuery(String subItem) {
+		return URLEncoder.encode(URLDecoder.decode(subItem, StandardCharsets.UTF_8), StandardCharsets.UTF_8);
 	}
 
 	private Request request(String method, String uri) {
@@ -94,25 +103,27 @@ public class RESTClient {
 			throw new IllegalArgumentException("Request URI must start with a slash");
 		}
 		int index = uri.indexOf('?');
-		if (index != -1) {
-			String prefix = uri.substring(0, index).strip();
-			String suffix = uri.substring(index + 1).strip();
+		if (index == -1) {
+			uri = encodePaths(uri);
+		} else {
+			String prefix = uri.substring(0, index);
+			String suffix = uri.substring(index + 1);
 			if (suffix.isEmpty()) {
-				uri = prefix;
+				uri = encodePaths(prefix);
 			} else {
 				String[] items = suffix.split("&");
 				for (int i = 0; i < items.length; i++) {
-					String item = items[i].strip();
+					String item = items[i];
 					int subIndex = item.indexOf('=');
 					if (subIndex == -1) {
-						items[i] = encode(item);
+						items[i] = encodeQuery(item);
 					} else {
-						String name = item.substring(0, subIndex).strip();
-						String value = item.substring(subIndex + 1).strip();
-						items[i] = "%s=%s".formatted(encode(name), encode(value));
+						String name = item.substring(0, subIndex);
+						String value = item.substring(subIndex + 1);
+						items[i] = "%s=%s".formatted(encodeQuery(name), encodeQuery(value));
 					}
 				}
-				uri = "%s?%s".formatted(prefix, String.join("&", items));
+				uri = "%s?%s".formatted(encodePaths(prefix), String.join("&", items));
 			}
 		}
 		Request request = client.newRequest("%s%s".formatted(url, uri));
@@ -141,6 +152,9 @@ public class RESTClient {
 	}
 
 	private Response sendRequest(String method, String uri, Object body, Map<String, String> paths) {
+		if (body == null) {
+			throw new IllegalArgumentException("Body cannot be null");
+		}
 		String requestBody = gson.toJson(body);
 		Response response;
 		if (paths == null) {

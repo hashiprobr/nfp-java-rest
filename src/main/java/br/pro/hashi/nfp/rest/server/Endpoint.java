@@ -46,7 +46,7 @@ public abstract class Endpoint<T> {
 	@SuppressWarnings("unchecked")
 	private <S> S fromJson(String method, String requestBody, Type requestType) {
 		S body;
-		if (plain) {
+		if (plain && !method.equals("PATCH")) {
 			body = (S) requestBody;
 		} else {
 			try {
