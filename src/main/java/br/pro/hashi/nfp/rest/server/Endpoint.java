@@ -1,11 +1,11 @@
 package br.pro.hashi.nfp.rest.server;
 
-import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 
+import br.pro.hashi.nfp.rest.Reflections;
 import br.pro.hashi.nfp.rest.server.exception.BadRequestException;
 import br.pro.hashi.nfp.rest.server.exception.NotImplementedException;
 
@@ -27,19 +27,8 @@ public abstract class Endpoint<T> {
 			throw new IllegalArgumentException("Endpoint URI must have only one slash");
 		}
 		this.uri = uri;
-
-		Class<?> type = getClass();
-		Class<?> ancestor = type.getSuperclass();
-		while (!ancestor.equals(Endpoint.class)) {
-			type = ancestor;
-			ancestor = type.getSuperclass();
-		}
-		ParameterizedType genericType = (ParameterizedType) type.getGenericSuperclass();
-		Type[] types = genericType.getActualTypeArguments();
-		this.type = types[0];
-
+		this.type = Reflections.getTypeParameter(Endpoint.class, this, 0);
 		this.plain = this.type.equals(String.class);
-
 		this.gson = null;
 	}
 

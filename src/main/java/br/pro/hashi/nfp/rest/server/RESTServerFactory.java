@@ -4,6 +4,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.jetty.server.Server;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
 
@@ -13,9 +15,11 @@ import br.pro.hashi.nfp.rest.Reflections;
 public class RESTServerFactory extends GsonManager {
 	private static final int PORT = 8080;
 
+	private final Logger logger;
 	private final Map<String, Map<String, Endpoint<?>>> maps;
 
 	RESTServerFactory() {
+		this.logger = LoggerFactory.getLogger(RESTServerFactory.class);
 		this.maps = new HashMap<>();
 	}
 
@@ -39,6 +43,7 @@ public class RESTServerFactory extends GsonManager {
 				}
 				endpoint.setGson(gson);
 				endpoints.put(uri, endpoint);
+				logger.info("Registered %s".formatted(endpoint.getClass().getName()));
 			}
 			maps.put(endpointPrefix, endpoints);
 		}

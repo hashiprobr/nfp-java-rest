@@ -1,6 +1,5 @@
 package br.pro.hashi.nfp.rest;
 
-import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 
 import com.google.gson.JsonDeserializationContext;
@@ -11,18 +10,11 @@ import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 
 abstract class AbstractConverter<J, T> {
-	private final Type type;
+	private final Class<T> type;
 
+	@SuppressWarnings("unchecked")
 	protected AbstractConverter() {
-		Class<?> type = getClass();
-		Class<?> ancestor = type.getSuperclass();
-		while (!ancestor.equals(AbstractConverter.class)) {
-			type = ancestor;
-			ancestor = type.getSuperclass();
-		}
-		ParameterizedType genericType = (ParameterizedType) type.getGenericSuperclass();
-		Type[] types = genericType.getActualTypeArguments();
-		this.type = types[1];
+		this.type = (Class<T>) Reflections.getTypeParameter(AbstractConverter.class, this, 1);
 	}
 
 	private JsonElement wrap(J value, JsonSerializationContext context) {
@@ -43,7 +35,7 @@ abstract class AbstractConverter<J, T> {
 
 	protected abstract J unwrapNotNull(JsonElement value, JsonDeserializationContext context);
 
-	Type getType() {
+	Class<T> getType() {
 		return type;
 	}
 

@@ -1,16 +1,20 @@
 package br.pro.hashi.nfp.rest;
 
-import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 public class GsonManager {
+	private final Logger logger;
 	private final Map<String, Gson> gsons;
 
 	public GsonManager() {
+		this.logger = LoggerFactory.getLogger(GsonManager.class);
 		this.gsons = new HashMap<>();
 	}
 
@@ -18,9 +22,10 @@ public class GsonManager {
 		GsonBuilder builder = new GsonBuilder();
 		Reflections reflections = new Reflections(converterPrefix);
 		for (AbstractConverter<?, ?> converter : reflections.getSubInstancesOf(AbstractConverter.class)) {
-			Type type = converter.getType();
+			Class<?> type = converter.getType();
 			builder.registerTypeAdapter(type, converter.serializer());
 			builder.registerTypeAdapter(type, converter.deserializer());
+			logger.info("Registered %s".formatted(converter.getClass().getName()));
 		}
 		return builder;
 	}
