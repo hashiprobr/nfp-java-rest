@@ -14,7 +14,7 @@ abstract class AbstractConverter<J, T> {
 
 	@SuppressWarnings("unchecked")
 	protected AbstractConverter() {
-		this.type = (Class<T>) Reflections.getTypeParameter(AbstractConverter.class, this, 1);
+		this.type = (Class<T>) Reflections.getSpecificType(AbstractConverter.class, this, 1);
 	}
 
 	private JsonElement wrap(J value, JsonSerializationContext context) {

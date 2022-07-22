@@ -27,7 +27,7 @@ public abstract class Endpoint<T> {
 			throw new IllegalArgumentException("Endpoint URI must have only one slash");
 		}
 		this.uri = uri;
-		this.type = Reflections.getTypeParameter(Endpoint.class, this, 0);
+		this.type = Reflections.getSpecificType(Endpoint.class, this, 0);
 		this.plain = this.type.equals(String.class);
 		this.gson = null;
 	}

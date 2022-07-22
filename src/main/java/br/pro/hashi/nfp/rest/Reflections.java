@@ -12,7 +12,7 @@ import java.util.Stack;
 import br.pro.hashi.nfp.rest.exception.ReflectionsException;
 
 public class Reflections extends org.reflections.Reflections {
-	public static <T, S extends T> Type getTypeParameter(Class<T> superType, S object, int i) {
+	public static <T, S extends T> Type getSpecificType(Class<T> superType, S object, int i) {
 		Stack<Class<?>> stack = new Stack<>();
 
 		Class<?> subType = object.getClass();
@@ -21,7 +21,7 @@ public class Reflections extends org.reflections.Reflections {
 			subType = subType.getSuperclass();
 		} while (!subType.equals(superType));
 
-		Type type = null;
+		Type type;
 		while (true) {
 			subType = stack.pop();
 			ParameterizedType genericType = (ParameterizedType) subType.getGenericSuperclass();
