@@ -46,26 +46,26 @@ To build a server, you need the name of the package where the endpoints are
 located and a port. If the port is omitted, it defaults to 8080.
 
 ``` java
+import br.pro.hashi.nfp.rest.server.RESTServer;
+import br.pro.hashi.nfp.rest.server.RESTServerFactory;
+
 public static void main(String[] args) {
-    RestServer server = RestServer.Builder("name.of.a.package").at(8080).build();
+    RESTServerFactory factory = RESTServer.factory();
+    RESTServer server = factory.build("name.of.a.package", 8080);
     server.start();
 }
 ```
 
 The server automatically finds and instantiates all endpoints in the package,
-including subpackages. If everything works, you should see a message in the
-console with the local address that can be used to access the server. In normal
+including subpackages. If everything works, `server.getUrl()` can be used to
+obtain the local address that can be used to access the server. In normal
 circumstances, `localhost` should also work.
 
-``` plaintext
-REST server started on http://192.168.123.456:8080
-```
-
-You should be able to access the URL `http://192.168.123.456:8080/sum` using
-your internet browser, but the output will not be very exciting...
+You should be able to access the URL `http://<address>/sum` using your internet
+browser, but the output will not be very exciting...
 
 ```
-GET not implemented
+GET received
 ```
 
 ...because no HTTP method has been implemented for this endpoint.
@@ -84,60 +84,90 @@ public class SumEndpoint extends Endpoint<Integer> {
     }
 
     @Override
-    public Integer get(Args args) {
+    public Object get() {
         return 0;
     }
 }
 ```
 
-Why this method returns an integer? Because `SumEndpoint` is an endpoint of
-integers, as established by the choice of `Integer` as its parameter. If a
-client wants to `GET /sum`, it is assumed that it wants to get an integer.
-
-For the same reason, the `post` and `put` methods receive an integer...
+We can also override the `post`, `put`, and `delete` methods...
 
 ``` java
 @Override
-public Object post(Args args, Integer i) {
+public Object post(Integer i) {
     return null;
 }
 
 @Override
-public Object put(Args args, Integer i) {
+public Object put(Integer i) {
+    return null;
+}
+
+@Override
+public Object delete() {
     return null;
 }
 ```
 
-...but they can return anything, as can the `delete` method.
+...with one caveat: `post` and `put` receive an integer parameter, since these
+HTTP methods receive a body. Why an integer? Because `SumEndpoint` is an
+endpoint of integers, as established by the choice of `Integer` as its
+parameter.
 
-``` java
-@Override
-public Object delete(Args args) {
-    return null;
-}
-```
-
-But what does the client actually receive? If the return value is a string, the
-client simply receives this string. If the return value is anything else, the
-client receives it serialized as a JSON representation.
+On the other hand, all methods can return whatever you want. If the return value
+is a string, the client simply receives this string. If the return value is
+anything else, the client receives it serialized as a JSON representation.
 
 Analogously, if the client sends a POST or PUT, it needs to send a string as the
 body. For an endpoint of strings, it can be an arbitrary one. For an endpoint of
 another type, it must be a JSON representation of the type.
 
+### Receiving a key through the URI
+
+The `get` and `delete` methods accept an optional key as part of the URI. For
+example, instead of `GET /sum`, the client can `GET /sum/123`. In this case, the
+behavior is implemented by a second version of `get`, which accepts the key as
+its first parameter.
+
+``` java
+@Override
+public Object get(String key) {
+    return key;
+}
+
+@Override
+public Object delete(String key) {
+    return key;
+}
+```
+
 ### Receiving query strings
 
-The query strings are received as an instance of `Args`. The class `Args` is
-simply a subclass of `HashMap<String, String>` with the convenience methods
-below.
+In all four methods, the query strings are received as an optional parameter of
+type `Args`. The class `Args` is simply an implementation of `Map<String,
+String>` with the convenience methods below.
 
 * `boolean getBoolean(String key)`: returns the value of `key` converted to
   boolean.
 
+* `byte getByte(String key)`: returns the value of `key` converted to byte.
+
+* `short getShort(String key)`: returns the value of `key` converted to short.
+
 * `int getInt(String key)`: returns the value of `key` converted to integer.
+
+* `long getLong(String key)`: returns the value of `key` converted to long.
+
+* `float getFloat(String key)`: returns the value of `key` converted to float.
 
 * `double getDouble(String key)`: returns the value of `key` converted to
   double.
+
+* `BigInteger getBigInteger(String key)`: returns the value of `key` converted
+  to big integer.
+
+* `BigDecimal getBigDecimal(String key)`: returns the value of `key` converted
+  to big decimal.
 
 * `List<String> getList(String key, String regex)`: returns the value of `key`
   as a list of strings, using `regex` as the separator.
@@ -145,11 +175,29 @@ below.
 * `List<Boolean> getListBoolean(String key)`: returns the value of `key` as a
   list of booleans, using `regex` as the separator.
 
+* `List<Byte> getListByte(String key, String regex)`: returns the value of `key`
+  as a list of bytes, using `regex` as the separator.
+
+* `List<Short> getListShort(String key, String regex)`: returns the value of
+  `key` as a list of shorts, using `regex` as the separator.
+
 * `List<Integer> getListInt(String key, String regex)`: returns the value of
   `key` as a list of integers, using `regex` as the separator.
 
+* `List<Long> getListLong(String key, String regex)`: returns the value of
+  `key` as a list of longs, using `regex` as the separator.
+
+* `List<Float> getListFloat(String key, String regex)`: returns the value of
+  `key` as a list of floats, using `regex` as the separator.
+
 * `List<Double> getListDouble(String key, String regex)`: returns the value of
   `key` as a list of doubles, using `regex` as the separator.
+
+* `List<BigInteger> getListBigInteger(String key, String regex)`: returns the
+  value of `key` as a list of big integers, using `regex` as the separator.
+
+* `List<BigDecimal> getListBigDecimal(String key, String regex)`: returns the
+  value of `key` as a list of big decimals, using `regex` as the separator.
 
 If, for example, we want `GET /sum` to actually do a sum, we can write...
 
@@ -162,8 +210,8 @@ public Integer get(Args args) {
 }
 ```
 
-...and point the internet browser to `http://192.168.123.456:8080/sum?a=1&b=2`
-for a slightly more exciting output.
+...and point the internet browser to `http://<address>/sum?a=1&b=2` for a
+slightly more exciting output.
 
 ``` plaintext
 3
@@ -183,8 +231,8 @@ public Integer get(Args args) {
 }
 ```
 
-...and point the internet browser to `http://192.168.123.456:8080/sum?n=1,2,3,4`
-for another output.
+...and point the internet browser to `http://<address>/sum?n=1,2,3,4` for
+another output.
 
 ``` plaintext
 10
@@ -193,40 +241,19 @@ for another output.
 Again, remember that **any change to the endpoints requires a server restart**.
 
 
-Batch URI suffixes
+Multipart requests
 ------------------
 
-If the client sends a request to `/sum/list`, the class `SumEndpoint` is still
-responsible for receiving this request. However, it is handled by a list version
-of the method.
+Multipart requests to `post` or `put` **must** have at least one part named
+"body" that represents the main body (what you would send as the body in a
+non-multipart request). All the others will be received as a parameter of type
+`Files`. The class `Files` is simply an implementation of `Map<String,
+InputStream>`, where the keys are the part names and the values are the part
+data.
 
-* `public List<Integer> getList(Args args)`
+* `public Object post(Integer i, InputStream stream)`
 
-* `public Object postList(Args args, List<Integer> integers)`
-
-* `public Object putList(Args args, List<Integer> integers)`
-
-* `public Object deleteList(Args args)`
-
-
-File URI suffixes
------------------
-
-If the client sends a request to `/sum/file`, the class `SumEndpoint` is still
-responsible for receiving this request. However, it is handled by a file version
-of the method.
-
-* `public String getFile(Args args)`
-
-* `public Object postFile(Args args, InputStream stream)`
-
-* `public Object putFile(Args args, InputStream stream)`
-
-* `public Object deleteFile(Args args)`
-
-These methods are supposed to be used to store files and return URLs that can be
-used to access the files as static resources. For example, as the `src` of an
-`img`.
+* `public Object put(Integer i), InputStream stream)`
 
 
 Remote server access
@@ -241,101 +268,3 @@ server.start(true);
 
 ...the server opens a public tunnel using [ngrok](https://ngrok.com/), allowing
 users in other networks to access it.
-
-
-Full CRUD example
------------------
-
-Read the [nfp-java-dao](https://github.com/hashiprobr/nfp-java-dao)
-documentation to understand the `User` and `UserDAO` classes.
-
-``` java
-public class UserEndpoint extends Endpoint<User> {
-    private UserDAO dao;
-
-    public UserEndpoint() {
-        super("/user");
-        this.dao = new UserDAO();
-    }
-
-    @Override
-    public User get(Args args) {
-        String key = args.get("key");
-        return dao.retrieve(key);
-    }
-
-    @Override
-    public List<User> getList(Args args) {
-        List<String> keys = args.getList("keys");
-        Selection selection = dao.select(keys);
-        return dao.retrieve(selection);
-    }
-
-    @Override
-    public String getFile(Args args) {
-        String key = args.get("key");
-        String name = args.get("name");
-        return dao.retrieve(key, name);
-    }
-
-    @Override
-    public Object post(Args args, User user) {
-        return dao.create(user);
-    }
-
-    @Override
-    public Object postList(Args args, List<User> users) {
-        return dao.create(users);
-    }
-
-    @Override
-    public String postFile(Args args, InputStream stream) {
-        String key = args.get("key");
-        String name = args.get("name");
-        return dao.create(key, name, stream);
-    }
-
-    @Override
-    public Object put(Args args, User user) {
-        dao.update(user);
-        return "updated";
-    }
-
-    @Override
-    public Object putList(Args args, List<User> users) {
-        dao.update(users);
-        return "updated list";
-    }
-
-    @Override
-    public String putFile(Args args, InputStream stream) {
-        String key = args.get("key");
-        String name = args.get("name");
-        return dao.update(key, name, stream);
-    }
-
-    @Override
-    public Object delete(Args args) {
-        String key = args.get("key");
-        dao.delete(key);
-        return "deleted";
-    }
-
-    @Override
-    public Object deleteList(Args args) {
-        List<String> keys = args.getList("keys");
-        Selection selection = dao.select(keys);
-        dao.delete(selection)
-        return "deleted list";
-    }
-
-    @Override
-    public Object deleteFile(Args args) {
-        String key = args.get("key");
-        String name = args.get("name");
-        dao.delete(key, name);
-        return "deleted file";
-    }
-}
-
-```
